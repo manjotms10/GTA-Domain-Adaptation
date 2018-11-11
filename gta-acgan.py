@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import torch
 from torch.autograd import Variable
@@ -27,13 +28,15 @@ lambda_pixel = 100
 
 generator = Generator().to(device)
 discriminator = Discriminator().to(device)
-    
+
 generator = torch.nn.DataParallel(generator, list(range(torch.cuda.device_count())))
 discriminator = torch.nn.DataParallel(discriminator, list(range(torch.cuda.device_count())))
 
 if opt['load_model']:
-    generator.load_state_dict(torch.load("saved_models/generator.pth"))
-    discriminator.load_state_dict(torch.load("saved_models/discriminator.pth"))
+    if os.path.isfile("saved_models/generator.pth"):
+        generator.load_state_dict(torch.load("saved_models/generator.pth"))
+    if os.path.isfile("saved_models/discriminator.pth"):
+        discriminator.load_state_dict(torch.load("saved_models/discriminator.pth"))
 else:
     generator.apply(weights_init_normal)
     discriminator.apply(weights_init_normal)
@@ -45,7 +48,7 @@ for epoch in range(opt['n_epochs']):
     for i in range(2500 // opt['batch_size']):
 
         x, y = next(data.data_generator())
-        
+
         real_A = Variable(x.type(Tensor))
         real_B = Variable(y.type(Tensor))
 
@@ -83,7 +86,7 @@ for epoch in range(opt['n_epochs']):
         logger.info(message)
 
         if i % opt["sample_interval"] == 0:
-            sample_images(i, generator, epoch + i)
+            sample_images(data, i, generator, "{}-{}".format(epoch,i))
 
     if opt['checkpoint_interval'] != -1 and epoch % opt['checkpoint_interval'] == 0:
         torch.save(generator.state_dict(), 'saved_models/generator.pth')
