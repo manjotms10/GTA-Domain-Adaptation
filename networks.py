@@ -14,13 +14,13 @@ class Generator(nn.Module):
         self.bn4 = nn.BatchNorm2d(256)
 
         self.layer5 = nn.ConvTranspose2d(256, 128, 4, 2, 1, bias=False)
-        self.bn5 = nn.UpsamplingBilinear2d(scale_factor=2)
+        self.bn5 = nn.Upsample(scale_factor=2)
         self.layer6 = nn.ConvTranspose2d(128, 64, 4, 2, 1, bias=False)
-        self.bn6 = nn.UpsamplingBilinear2d(scale_factor=2)
+        self.bn6 = nn.Upsample(scale_factor=2)
         self.layer7 = nn.ConvTranspose2d(64, 32, 4, 2, 1, bias=False)
-        self.bn7 = nn.UpsamplingBilinear2d(scale_factor=2)
+        self.bn7 = nn.Upsample(scale_factor=2)
         self.layer8 = nn.ConvTranspose2d(32, 3, 4, 2, 1, bias=False)
-        self.bn8 = nn.UpsamplingBilinear2d(scale_factor=2)
+        self.bn8 = nn.Upsample(scale_factor=2)
 
     def forward(self, x):
         x = F.max_pool2d(F.relu(self.bn1(self.layer1(x))), kernel_size=2)

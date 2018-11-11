@@ -2,7 +2,6 @@ import os
 
 import torch
 from torch.autograd import Variable
-from torch.utils import data
 from torchvision.utils import save_image
 
 Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
@@ -44,10 +43,11 @@ def ensure_dir(file_path):
         os.makedirs(directory)
 
 
-def sample_images(batches_done, generator, number):
+def sample_images(data, batches_done, generator, number):
     x, y = next(data.data_generator())
     real_A = Variable(x.type(Tensor))
     real_B = Variable(y.type(Tensor))
     fake_B = generator(real_A)
     img_sample = torch.cat((real_A.data, fake_B.data, real_B.data), -2)
     save_image(img_sample, 'saved_images/%s.png' % (number), nrow=5, normalize=True)
+    return x, y
