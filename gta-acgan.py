@@ -80,7 +80,8 @@ def weights_init_normal(m):
     elif classname.find('BatchNorm2d') != -1:
         torch.nn.init.normal_(m.weight.data, 1.0, 0.01)
         torch.nn.init.constant_(m.bias.data, 0.0)
-        
+
+'''
 class Generator(nn.Module):
     def __init__(self):
         super(Generator, self).__init__()
@@ -114,6 +115,8 @@ class Generator(nn.Module):
         x = self.bn8(self.layer8(x))
         return x
     
+'''
+    
 class Discriminator(nn.Module):
     def __init__(self, in_channels=3):
         super(Discriminator, self).__init__()
@@ -142,6 +145,72 @@ class Discriminator(nn.Module):
         y = self.flat(y)
         y = self.out(y)
         return y
+    
+class ResNetBlock(nn.Module):    
+    def __init__(self, n):
+        super(ResNetBlock, self).__init__()
+        self.nf = n
+        self.model = self.build_block(n)
+        
+    def build_block(self, n):
+        model = []
+        model += 2 * [
+            nn.ReflectionPad2d(1),
+            nn.Conv2d(n, n, kernel_size=3, stride=1, padding=0),
+            nn.InstanceNorm2d(n),
+            nn.ReLU(True)
+        ]        
+        return nn.Sequential(*model)
+    
+    def forward(self, x):
+        return x + self.model(x)
+    
+
+class Generator(nn.Module):
+    
+    def __init__(self, n=128):
+        super(Generator, self).__init__()
+        self.n = n
+        self.block = self.model(n)
+        
+    
+    def model(self, n):
+        model = [nn.ReflectionPad2d(3),
+                 nn.Conv2d(3, 32, kernel_size=7, padding=0,
+                 bias=True),
+                 nn.InstanceNorm2d(32),
+                 nn.ReLU(True)]
+        model += [nn.Conv2d(32, 64, kernel_size=3,
+                        stride=2, padding=1, bias=True),
+                              nn.InstanceNorm2d(64),
+                              nn.ReLU(True)]
+
+        model += [nn.Conv2d(64, 128, kernel_size=3,
+                        stride=2, padding=1, bias=True),
+                              nn.InstanceNorm2d(128),
+                              nn.ReLU(True)]
+
+        model += 6 * [ResNetBlock(128)]
+
+        model += [nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, output_padding=1),
+                  nn.InstanceNorm2d(64),
+                  nn.ReLU(True)]
+
+        model += [nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1),
+                  nn.InstanceNorm2d(32),
+                  nn.ReLU(True)]
+
+        model += [nn.ReflectionPad2d(3),
+                  nn.Conv2d(32, 3, kernel_size=7, stride=1, padding=0),
+                 nn.ReLU(True)]
+
+        return nn.Sequential(*model)
+        
+    
+    def forward(self, x):
+        return self.block(x)
+    
+
             
 data = DataLoader(data_root= './gta/', image_size=(256, 256), batch_size=64)
 x, y = next(data.data_generator())
@@ -234,7 +303,7 @@ for epoch in range(opt['n_epochs']):
 
         optimizer_D.zero_grad()
 
-        pred_real = discriminator(real_A)
+        pred_real = discriminator(real_B)
         loss_real = criterion_GAN(pred_real, valid)
 
         pred_fake = discriminator(fake_B.detach())
