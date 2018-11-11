@@ -4,7 +4,7 @@ import torch
 from torch.autograd import Variable
 
 from data_loader import DataLoader
-from networks import Generator, Discriminator
+from networks import Generator, Discriminator, ResNetBlock
 from utils import ensure_dir, get_opts, weights_init_normal, sample_images
 from logger import logger
 
@@ -12,7 +12,7 @@ device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
 Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
 
-data = DataLoader(data_root='./gta/', image_size=(256, 256), batch_size=64)
+data = DataLoader(data_root='../gta/', image_size=(256, 256), batch_size=64)
 x, y = next(data.data_generator())
 x, y = x.to(device), y.to(device)
 
@@ -69,8 +69,7 @@ for epoch in range(opt['n_epochs']):
         optimizer_D.zero_grad()
 
         pred_real = discriminator(real_B)
-        # changed from real_A to real_B as discriminator should specialise in B class
-
+        
         loss_real = criterion_GAN(pred_real, valid)
 
         pred_fake = discriminator(fake_B.detach())
