@@ -1,38 +1,69 @@
 from torch import nn
 from torch.nn import functional as F
 
-class Generator(nn.Module):
-    def __init__(self):
-        super(Generator, self).__init__()
-        self.layer1 = nn.Conv2d(in_channels=3, kernel_size=3, out_channels=32, stride=2, padding=1)
-        self.bn1 = nn.BatchNorm2d(32)
-        self.layer2 = nn.Conv2d(in_channels=32, kernel_size=3, out_channels=64, stride=2, padding=1)
-        self.bn2 = nn.BatchNorm2d(64)
-        self.layer3 = nn.Conv2d(in_channels=64, kernel_size=3, out_channels=128, stride=2, padding=1)
-        self.bn3 = nn.BatchNorm2d(128)
-        self.layer4 = nn.Conv2d(in_channels=128, kernel_size=3, out_channels=256, stride=2, padding=1)
-        self.bn4 = nn.BatchNorm2d(256)
-
-        self.layer5 = nn.ConvTranspose2d(256, 128, 4, 2, 1, bias=False)
-        self.bn5 = nn.Upsample(scale_factor=2)
-        self.layer6 = nn.ConvTranspose2d(128, 64, 4, 2, 1, bias=False)
-        self.bn6 = nn.Upsample(scale_factor=2)
-        self.layer7 = nn.ConvTranspose2d(64, 32, 4, 2, 1, bias=False)
-        self.bn7 = nn.Upsample(scale_factor=2)
-        self.layer8 = nn.ConvTranspose2d(32, 3, 4, 2, 1, bias=False)
-        self.bn8 = nn.Upsample(scale_factor=2)
-
+class ResNetBlock(nn.Module):    
+    def __init__(self, n):
+        super(ResNetBlock, self).__init__()
+        self.nf = n
+        self.model = self.build_block(n)
+        
+    def build_block(self, n):
+        model = []
+        model += 2 * [
+            nn.ReflectionPad2d(1),
+            nn.Conv2d(n, n, kernel_size=3, stride=1, padding=0),
+            nn.InstanceNorm2d(n),
+            nn.ReLU(True)
+        ]        
+        return nn.Sequential(*model)
+    
     def forward(self, x):
-        x = F.max_pool2d(F.relu(self.bn1(self.layer1(x))), kernel_size=2)
-        x = F.max_pool2d(F.relu(self.bn2(self.layer2(x))), kernel_size=2)
-        x = F.max_pool2d(F.relu(self.bn3(self.layer3(x))), kernel_size=2)
-        x = F.max_pool2d(F.relu(self.bn4(self.layer4(x))), kernel_size=2)
-        x = F.relu(x)
-        x = self.bn5(self.layer5(x))
-        x = self.bn6(self.layer6(x))
-        x = self.bn7(self.layer7(x))
-        x = self.bn8(self.layer8(x))
-        return x
+        return x + self.model(x)
+    
+
+class Generator(nn.Module):
+    
+    def __init__(self, n=128):
+        super(Generator, self).__init__()
+        self.n = n
+        self.block = self.model(n)
+        
+    
+    def model(self, n):
+        model = [nn.ReflectionPad2d(3),
+                 nn.Conv2d(3, 32, kernel_size=7, padding=0,
+                 bias=True),
+                 nn.InstanceNorm2d(32),
+                 nn.ReLU(True)]
+        model += [nn.Conv2d(32, 64, kernel_size=3,
+                        stride=2, padding=1, bias=True),
+                              nn.InstanceNorm2d(64),
+                              nn.ReLU(True)]
+
+        model += [nn.Conv2d(64, 128, kernel_size=3,
+                        stride=2, padding=1, bias=True),
+                              nn.InstanceNorm2d(128),
+                              nn.ReLU(True)]
+
+        model += 6 * [ResNetBlock(128)]
+
+        model += [nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, output_padding=1),
+                  nn.InstanceNorm2d(64),
+                  nn.ReLU(True)]
+
+        model += [nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1),
+                  nn.InstanceNorm2d(32),
+                  nn.ReLU(True)]
+
+        model += [nn.ReflectionPad2d(3),
+                  nn.Conv2d(32, 3, kernel_size=7, stride=1, padding=0),
+                 nn.ReLU(True)]
+
+        return nn.Sequential(*model)
+        
+    
+    def forward(self, x):
+        return self.block(x)
 
 
 class Discriminator(nn.Module):
