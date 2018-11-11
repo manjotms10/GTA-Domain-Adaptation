@@ -1,1 +1,1 @@
-# GTA-Domain-Adaptation
+# GTA-Domain-Adaptation - DualGans
