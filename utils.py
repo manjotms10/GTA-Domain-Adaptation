@@ -18,21 +18,22 @@ def weights_init_normal(m):
 
 
 def get_opts():
-    opt = dict()
-
-    opt["n_epochs"] = 100
-    opt["dataset_name"] = 'GTA'
-    opt["batch_size"] = 64
-    opt["lr"] = 0.0002
-    opt["b1"] = 0.5
-    opt["b2"] = 0.99
-    opt["decay_epoch"] = 100
-    opt["n_cpu"] = 4
-    opt["img_height"] = 256
-    opt["img_width"] = 256
-    opt["channels"] = 3
-    opt["sample_interval"] = 25
-    opt["checkpoint_interval"] = 1
+    opt = {
+        "n_epochs": 100,
+        "dataset_name": 'GTA',
+        "batch_size": 64,
+        "lr": 0.0002,
+        "b1": 0.5,
+        "b2": 0.99,
+        "decay_epoch": 100,
+        "n_cpu": 4,
+        "img_height": 256,
+        "img_width": 256,
+        "channels": 3,
+        "sample_interval": 25,
+        "checkpoint_interval": 1,
+        "load_model": True
+    }
 
     return opt
 
