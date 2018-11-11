@@ -68,7 +68,9 @@ for epoch in range(opt['n_epochs']):
 
         optimizer_D.zero_grad()
 
-        pred_real = discriminator(real_A)
+        pred_real = discriminator(real_B)
+        # changed from real_A to real_B as discriminator should specialise in B class
+
         loss_real = criterion_GAN(pred_real, valid)
 
         pred_fake = discriminator(fake_B.detach())
