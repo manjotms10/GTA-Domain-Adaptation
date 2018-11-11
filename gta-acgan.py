@@ -82,6 +82,7 @@ def weights_init_normal(m):
         torch.nn.init.constant_(m.bias.data, 0.0)
 
 '''
+
 class Generator(nn.Module):
     def __init__(self):
         super(Generator, self).__init__()
@@ -116,7 +117,6 @@ class Generator(nn.Module):
         return x
     
 '''
-    
 class Discriminator(nn.Module):
     def __init__(self, in_channels=3):
         super(Discriminator, self).__init__()
@@ -210,7 +210,6 @@ class Generator(nn.Module):
     def forward(self, x):
         return self.block(x)
     
-
             
 data = DataLoader(data_root= './gta/', image_size=(256, 256), batch_size=64)
 x, y = next(data.data_generator())
@@ -304,6 +303,7 @@ for epoch in range(opt['n_epochs']):
         optimizer_D.zero_grad()
 
         pred_real = discriminator(real_B)
+        pred_real = discriminator(real_A)
         loss_real = criterion_GAN(pred_real, valid)
 
         pred_fake = discriminator(fake_B.detach())
@@ -326,4 +326,5 @@ for epoch in range(opt['n_epochs']):
 
     if opt['checkpoint_interval'] != -1 and epoch % opt['checkpoint_interval'] == 0:
         torch.save(generator.state_dict(), 'saved_models/generator_%d.pth' % (epoch))
+        torch.save(discriminator.state_dict(), 'saved_models/discriminator_%d.pth' % (epoch))
         torch.save(discriminator.state_dict(), 'saved_models/discriminator_%d.pth' % (epoch))
