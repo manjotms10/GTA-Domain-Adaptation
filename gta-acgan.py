@@ -5,7 +5,7 @@ from torch.autograd import Variable
 from data_loader import DataLoader
 from networks import Generator, Discriminator
 from utils import ensure_dir, get_opts, weights_init_normal, sample_images
-from logging import logger
+from logger import logger
 
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
