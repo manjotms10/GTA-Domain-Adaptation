@@ -1,0 +1,1 @@
+nohup python dual_gans.py >> ../log.txt &
