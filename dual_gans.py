@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[14]:
 
 
 from __future__ import print_function
@@ -29,8 +29,11 @@ import matplotlib.animation as animation
 from IPython.display import HTML
 
 
-# In[2]:
+# In[15]:
 
+
+# Root directory for project
+proj_root = "/datasets/home/32/232/tdobhal/Project/"
 
 # Root directory for dataset
 data_root = "/datasets/home/32/232/tdobhal/Project/6_train/images/"
@@ -69,7 +72,7 @@ ngpu = torch.cuda.device_count()
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
-# In[3]:
+# In[16]:
 
 
 class DataLoader:
@@ -129,13 +132,13 @@ class DataLoader:
             yield torch.stack(x), torch.stack(y)
 
 
-# In[4]:
+# In[17]:
 
 
 data = DataLoader()
 
 
-# In[5]:
+# In[18]:
 
 
 def weights_init_normal(m):
@@ -147,7 +150,7 @@ def weights_init_normal(m):
         torch.nn.init.constant_(m.bias.data, 0.0)
 
 
-# In[6]:
+# In[19]:
 
 
 class Generator(nn.Module):
@@ -254,14 +257,14 @@ class Generator(nn.Module):
     
 
 
-# In[7]:
+# In[20]:
 
 
 gen_a = Generator().to(device)
 gen_b = Generator().to(device)
 
 
-# In[8]:
+# In[21]:
 
 
 class Discriminator(nn.Module):
@@ -308,14 +311,14 @@ class Discriminator(nn.Module):
         return x
 
 
-# In[9]:
+# In[22]:
 
 
 dis_a = Discriminator().to(device)
 dis_b = Discriminator().to(device)
 
 
-# In[10]:
+# In[23]:
 
 
 gen_a = nn.DataParallel(gen_a, list(range(ngpu)))
@@ -329,7 +332,7 @@ gen_b.apply(weights_init_normal)
 dis_b.apply(weights_init_normal)
 
 
-# In[11]:
+# In[24]:
 
 
 criterion = torch.nn.BCELoss()
@@ -346,7 +349,7 @@ optim_dis_b = torch.optim.RMSprop(dis_b.parameters(), lr, alpha)
 
 
 sample_interval = 25
-checkpoint_interval = 1
+checkpoint_interval = 500
 
 for epoch in range(num_epochs):
     for i in range(num_images // batch_size):
@@ -409,12 +412,12 @@ for epoch in range(num_epochs):
 
         if i % sample_interval == 0:
             img_sample = torch.cat((real_a.data, fake_a.data, real_b.data, fake_b.data), -2)
-            save_image(img_sample, 'saved_images/%s.png' % (epoch + i), nrow=5, normalize=True)
+            save_image(img_sample, proj_root + 'saved_images/%s.png' % (epoch + i), nrow=5, normalize=True)
 
 
-    if checkpoint_interval != -1 and epoch % checkpoint_interval == 0:
-        torch.save(gen_a.state_dict(), 'saved_models/generator_a_%d.pth' % (epoch))
-        torch.save(gen_b.state_dict(), 'saved_models/generator_b_%d.pth' % (epoch))
-        torch.save(dis_a.state_dict(), 'saved_models/discriminator_a_%d.pth' % (epoch))
-        torch.save(dis_b.state_dict(), 'saved_models/discriminator_b_%d.pth' % (epoch))
+        if i % checkpoint_interval == 0:
+            torch.save(gen_a.state_dict(), proj_root + 'saved_models/generator_a_%d_%d.pth' % (epoch, i))
+            torch.save(gen_b.state_dict(), proj_root + 'saved_models/generator_b_%d_%d.pth' % (epoch, i))
+            torch.save(dis_a.state_dict(), proj_root + 'saved_models/discriminator_a_%d_%d.pth' % (epoch, i))
+            torch.save(dis_b.state_dict(), proj_root + 'saved_models/discriminator_b_%d_%d.pth' % (epoch, i))
 
