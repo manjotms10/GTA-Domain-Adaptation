@@ -362,7 +362,7 @@ optim_dis_b = torch.optim.RMSprop(dis_b.parameters(), lr, alpha)
 
 # ### Train Loop
 
-# In[27]:
+# In[ ]:
 
 
 sample_interval = 25
@@ -392,10 +392,10 @@ for epoch in range(num_epochs):
             pred_fake_dis_a = dis_a(fake_a.detach()).view(-1)
             
             # Update params of Discriminator A and B
-            err_dis_a = pred_fake_dis_a - pred_real_dis_a + gradient_penalty(real_a.data, fake_a.data, dis_a)
+            err_dis_a = pred_fake_dis_a.mean() - pred_real_dis_a.mean() + gradient_penalty(real_a.data, fake_a.data, dis_a)
             err_dis_a.backward()
             optim_dis_a.step()
-            err_dis_b = pred_fake_dis_b - pred_real_dis_b + gradient_penalty(real_b.data, fake_b.data, dis_b)
+            err_dis_b = pred_fake_dis_b.mean() - pred_real_dis_b.mean() + gradient_penalty(real_b.data, fake_b.data, dis_b)
             err_dis_b.backward()
             optim_dis_b.step()
             
@@ -428,7 +428,7 @@ for epoch in range(num_epochs):
 
         if i % sample_interval == 0:
             img_sample = torch.cat((real_a.data, fake_a.data, real_b.data, fake_b.data), -2)
-            save_image(img_sample, proj_root + 'saved_images/%s.png' % (epoch + i), nrow=5, normalize=True)
+            save_image(img_sample, proj_root + 'saved_images/%d_%d.png' % (epoch, i), nrow=5, normalize=True)
 
 
         if i % checkpoint_interval == 0:
