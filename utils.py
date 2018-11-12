@@ -32,7 +32,7 @@ def get_opts():
         "channels": 3,
         "sample_interval": 25,
         "checkpoint_interval": 1,
-        "load_model": True
+        "load_model": False
     }
 
     return opt
