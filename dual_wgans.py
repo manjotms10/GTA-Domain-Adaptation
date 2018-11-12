@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[83]:
+# In[1]:
 
 
 from __future__ import print_function
@@ -30,7 +30,7 @@ import matplotlib.animation as animation
 from IPython.display import HTML
 
 
-# In[84]:
+# In[2]:
 
 
 # Root directory for project
@@ -79,7 +79,7 @@ ngpu = torch.cuda.device_count()
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
-# In[85]:
+# In[3]:
 
 
 class DataLoader:
@@ -139,13 +139,13 @@ class DataLoader:
             yield torch.stack(x), torch.stack(y)
 
 
-# In[86]:
+# In[4]:
 
 
 data = DataLoader()
 
 
-# In[87]:
+# In[5]:
 
 
 def weights_init_normal(m):
@@ -157,7 +157,7 @@ def weights_init_normal(m):
         torch.nn.init.constant_(m.bias.data, 0.0)
 
 
-# In[88]:
+# In[6]:
 
 
 class Generator(nn.Module):
@@ -264,14 +264,14 @@ class Generator(nn.Module):
     
 
 
-# In[89]:
+# In[7]:
 
 
 gen_a = Generator().to(device)
 gen_b = Generator().to(device)
 
 
-# In[90]:
+# In[8]:
 
 
 class Discriminator(nn.Module):
@@ -312,14 +312,14 @@ class Discriminator(nn.Module):
         return x
 
 
-# In[91]:
+# In[9]:
 
 
 dis_a = Discriminator().to(device)
 dis_b = Discriminator().to(device)
 
 
-# In[92]:
+# In[10]:
 
 
 # DataParallel for more than 1 gpu
@@ -334,7 +334,7 @@ gen_b.apply(weights_init_normal)
 dis_b.apply(weights_init_normal)
 
 
-# In[93]:
+# In[11]:
 
 
 # Gradient penalty for Wasserstein Loss
@@ -352,7 +352,7 @@ def gradient_penalty(real_dis, fake_dis, discriminator):
     return lambda_gradient * gp
 
 
-# In[94]:
+# In[12]:
 
 
 optim_gen_a = torch.optim.RMSprop(gen_a.parameters(), lr, alpha)
@@ -371,19 +371,23 @@ checkpoint_interval = 500
 
 prev_load = 0
 if(prev_load):
-    gen_a.load_state_dict(torch.load(proj_root + 'saved_models/dual_wgans/generator_a_1_1000.pth'))
-    dis_a.load_state_dict(torch.load(proj_root + 'saved_models/dual_wgans/discriminator_a_1_1000.pth'))
-    gen_b.load_state_dict(torch.load(proj_root + 'saved_models/dual_wgans/generator_b_1_1000.pth'))
-    dis_b.load_state_dict(torch.load(proj_root + 'saved_models/dual_wgans/discriminator_b_1_1000.pth'))
+    gen_a.load_state_dict(torch.load(proj_root + 'saved_models/dual_wgans/generator_a_0_1000.pth'))
+    dis_a.load_state_dict(torch.load(proj_root + 'saved_models/dual_wgans/discriminator_a_0_1000.pth'))
+    gen_b.load_state_dict(torch.load(proj_root + 'saved_models/dual_wgans/generator_b_0_1000.pth'))
+    dis_b.load_state_dict(torch.load(proj_root + 'saved_models/dual_wgans/discriminator_b_0_1000.pth'))
 
     
 for epoch in range(num_epochs):
     for i in range(num_images // batch_size):
-        x, y = next(data.data_generator())
-        real_a = Variable(x).to(device)
-        real_b = Variable(y).to(device)     
+        # Adjust training loop
+        if(prev_load and i <= 1000 and epoch <= 0):
+            continue     
         
         for j in range(num_critic):
+            x, y = next(data.data_generator())
+            real_a = Variable(x).to(device)
+            real_b = Variable(y).to(device)
+        
             # Training Discriminator A with real_A batch
             optim_dis_a.zero_grad();
             pred_real_dis_a = dis_a(real_a).view(-1)
