@@ -399,14 +399,16 @@ for epoch in range(num_epochs):
         
         # Train and update Generator A based on Discriminator B's prediction
         optim_gen_a.zero_grad()
-        pred_out_dis_b = dis_b(fake_b).view(-1, 1)
+        fake_b_gen = gen_a(fake_a)
+        pred_out_dis_b = dis_b(fake_b_gen).view(-1, 1)
         err_gen_a = criterion(pred_out_dis_b, valid)
         err_gen_a.backward()
         optim_gen_a.step()
         
         # Train and update Generator B based on Discriminator A's prediction
         optim_gen_b.zero_grad()
-        pred_out_dis_a = dis_a(fake_a).view(-1, 1)
+        fake_a_gen = gen_b(fake_b)
+        pred_out_dis_a = dis_a(fake_a_gen).view(-1, 1)
         err_gen_b = criterion(pred_out_dis_a, valid)
         err_gen_b.backward()
         optim_gen_b.step()
