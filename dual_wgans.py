@@ -414,16 +414,16 @@ for epoch in range(num_epochs):
         real_b = Variable(y).to(device)
         
         optim_gen_a.zero_grad()
-        fake_b = gen_a(real_a)
-        pred_out_dis_b = dis_b(fake_b).view(-1)
+        fake_b_gen = gen_a(fake_a)
+        pred_out_dis_b = dis_b(fake_b_gen).view(-1)
         err_gen_a = -pred_out_dis_b.mean()
         err_gen_a.backward()
         optim_gen_a.step()
         
         # Train and update Generator B based on Discriminator A's prediction
         optim_gen_b.zero_grad()
-        fake_a = gen_b(real_b)
-        pred_out_dis_a = dis_a(fake_a).view(-1)
+        fake_a_gen = gen_b(fake_b)
+        pred_out_dis_a = dis_a(fake_a_gen).view(-1)
         err_gen_b = -pred_out_dis_a.mean()
         err_gen_b.backward()
         optim_gen_b.step()
