@@ -1,1 +1,1 @@
-nohup python dual_gans.py >> ../log.txt &
+nohup python dual_wgans.py >> ../log.txt &

@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[14]:
+# In[15]:
 
 
 from __future__ import print_function
@@ -18,6 +18,7 @@ import torch.nn.parallel
 import torch.backends.cudnn as cudnn
 import torch.optim as optim
 import torch.utils.data
+from torch.autograd import grad
 from torch.autograd import Variable
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
@@ -29,7 +30,7 @@ import matplotlib.animation as animation
 from IPython.display import HTML
 
 
-# In[15]:
+# In[16]:
 
 
 # Root directory for project
@@ -59,11 +60,17 @@ ndf = 64
 # Number of training epochs
 num_epochs = 100
 
+# Number of training loops for critic/discriminator
+num_critic = 2
+
 # Learning rate for optimizers
 lr = 0.00005
 
 # Alpha hyperparam for RMS optimizers
 alpha = 0.9
+
+# Lambda hyperparam for gradient penalty
+lambda_gradient = 0.1
 
 # Number of GPUs available. Use 0 for CPU mode.
 ngpu = torch.cuda.device_count()
@@ -72,7 +79,7 @@ ngpu = torch.cuda.device_count()
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
-# In[16]:
+# In[17]:
 
 
 class DataLoader:
@@ -132,13 +139,13 @@ class DataLoader:
             yield torch.stack(x), torch.stack(y)
 
 
-# In[17]:
+# In[18]:
 
 
 data = DataLoader()
 
 
-# In[18]:
+# In[19]:
 
 
 def weights_init_normal(m):
@@ -150,7 +157,7 @@ def weights_init_normal(m):
         torch.nn.init.constant_(m.bias.data, 0.0)
 
 
-# In[19]:
+# In[20]:
 
 
 class Generator(nn.Module):
@@ -257,14 +264,14 @@ class Generator(nn.Module):
     
 
 
-# In[20]:
+# In[21]:
 
 
 gen_a = Generator().to(device)
 gen_b = Generator().to(device)
 
 
-# In[21]:
+# In[22]:
 
 
 class Discriminator(nn.Module):
@@ -279,46 +286,40 @@ class Discriminator(nn.Module):
             
             # state size. (ndf) x 64 x 64
             nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=True),
-            nn.BatchNorm2d(ndf * 2),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. 32 x 32
             nn.MaxPool2d((2, 2)),
     
             # state size. (ndf*2) x 16 x 16
             nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=True),
-            nn.BatchNorm2d(ndf * 4),
             nn.LeakyReLU(0.2, inplace=True),
             
             # state size. (ndf*4) x 8 x 8
             nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=True),
-            nn.BatchNorm2d(ndf * 8),
             nn.LeakyReLU(0.2, inplace=True),
             
             # state size. (ndf*8) x 4 x 4
             nn.Conv2d(ndf * 8, ndf * 8, 4, 2, 1, bias=True),
-            nn.BatchNorm2d(ndf * 8),
             nn.LeakyReLU(0.2, inplace=True),
             )
         
         self.flat = nn.Linear(ndf * 8 * 2 * 2, 1)
-        self.out = nn.Sigmoid()
         
     def forward(self, x):
         x = self.net(x)
         x = x.view(x.size()[0], -1)
         x = self.flat(x)
-        x = self.out(x)
         return x
 
 
-# In[22]:
+# In[23]:
 
 
 dis_a = Discriminator().to(device)
 dis_b = Discriminator().to(device)
 
 
-# In[23]:
+# In[24]:
 
 
 gen_a = nn.DataParallel(gen_a, list(range(ngpu)))
@@ -332,10 +333,26 @@ gen_b.apply(weights_init_normal)
 dis_b.apply(weights_init_normal)
 
 
-# In[24]:
+# In[25]:
 
 
-criterion = torch.nn.BCELoss()
+# Gradient penalty for Wasserstein Loss
+def gradient_penalty(real_dis, fake_dis, discriminator):
+    shape = [real_dis.size(0)] + [1] * (real_dis.dim() - 1)
+    alpha = torch.rand(shape).to(device)
+    z = real_dis + alpha * (fake_dis - real_dis)
+
+    # gradient penalty
+    z = Variable(z, requires_grad=True).to(device)
+    output = discriminator(z)
+    g = grad(output, z, grad_outputs=torch.ones(output.size()).to(device), create_graph=True)[0].view(z.size(0), -1)
+    gp = ((g.norm(p=2, dim=1) - 1)**2).mean()
+
+    return lambda_gradient * gp
+
+
+# In[26]:
+
 
 optim_gen_a = torch.optim.RMSprop(gen_a.parameters(), lr, alpha)
 optim_gen_b = torch.optim.RMSprop(gen_b.parameters(), lr, alpha)
@@ -345,7 +362,7 @@ optim_dis_b = torch.optim.RMSprop(dis_b.parameters(), lr, alpha)
 
 # ### Train Loop
 
-# In[ ]:
+# In[27]:
 
 
 sample_interval = 25
@@ -356,50 +373,49 @@ for epoch in range(num_epochs):
         x, y = next(data.data_generator())
         real_a = Variable(x).to(device)
         real_b = Variable(y).to(device)     
-        valid = Variable(torch.ones((real_a.size(0), 1)), requires_grad=False).to(device)
-        fake = Variable(torch.zeros((real_a.size(0), 1)), requires_grad=False).to(device)
         
-        # Training Discriminator A with real_A batch
-        optim_dis_a.zero_grad();
-        pred_real_dis_a = dis_a(real_a).view(-1, 1)
-        err_real_dis_a = criterion(pred_real_dis_a, valid)
-        err_real_dis_a.backward()
-        
-        # Training Discriminator B with real_B batch
-        optim_dis_b.zero_grad();
-        pred_real_dis_b = dis_b(real_b).view(-1, 1)
-        err_real_dis_b = criterion(pred_real_dis_b, valid)
-        err_real_dis_b.backward()
-        
-        # Training Discriminator B with fake_B batch of Generator A
-        fake_b = gen_a(real_a)
-        pred_fake_dis_b = dis_b(fake_b.detach()).view(-1, 1)
-        err_fake_dis_b = criterion(pred_fake_dis_b, fake)
-        err_fake_dis_b.backward()
-        
-        # Training Discriminator A with fake_A batch of Generator B
-        fake_a = gen_b(real_b)
-        pred_fake_dis_a = dis_a(fake_a.detach()).view(-1, 1)
-        err_fake_dis_a = criterion(pred_fake_dis_a, fake)
-        err_fake_dis_a.backward()
-        
-        # Update params of Discriminator A and B
-        err_dis_a = err_real_dis_a + err_fake_dis_a
-        optim_dis_a.step()
-        err_dis_b = err_real_dis_b + err_fake_dis_b
-        optim_dis_b.step()
-        
+        for j in range(num_critic):
+            # Training Discriminator A with real_A batch
+            optim_dis_a.zero_grad();
+            pred_real_dis_a = dis_a(real_a).view(-1)
+            
+            # Training Discriminator B with real_B batch
+            optim_dis_b.zero_grad();
+            pred_real_dis_b = dis_b(real_b).view(-1)
+            
+            # Training Discriminator B with fake_B batch of Generator A
+            fake_b = gen_a(real_a)
+            pred_fake_dis_b = dis_b(fake_b.detach()).view(-1)
+            
+            # Training Discriminator A with fake_A batch of Generator B
+            fake_a = gen_b(real_b)
+            pred_fake_dis_a = dis_a(fake_a.detach()).view(-1)
+            
+            # Update params of Discriminator A and B
+            err_dis_a = pred_fake_dis_a - pred_real_dis_a + gradient_penalty(real_a.data, fake_a.data, dis_a)
+            err_dis_a.backward()
+            optim_dis_a.step()
+            err_dis_b = pred_fake_dis_b - pred_real_dis_b + gradient_penalty(real_b.data, fake_b.data, dis_b)
+            err_dis_b.backward()
+            optim_dis_b.step()
+            
         # Train and update Generator A based on Discriminator B's prediction
+        x, y = next(data.data_generator())
+        real_a = Variable(x).to(device)
+        real_b = Variable(y).to(device)
+        
         optim_gen_a.zero_grad()
-        pred_out_dis_b = dis_b(fake_b).view(-1, 1)
-        err_gen_a = criterion(pred_out_dis_b, valid)
+        fake_b = gen_a(real_a)
+        pred_out_dis_b = dis_b(fake_b).view(-1)
+        err_gen_a = -pred_out_dis_b.mean()
         err_gen_a.backward()
         optim_gen_a.step()
         
         # Train and update Generator B based on Discriminator A's prediction
         optim_gen_b.zero_grad()
-        pred_out_dis_a = dis_a(fake_a).view(-1, 1)
-        err_gen_b = criterion(pred_out_dis_a, valid)
+        fake_a = gen_b(real_b)
+        pred_out_dis_a = dis_a(fake_a).view(-1)
+        err_gen_b = -pred_out_dis_a.mean()
         err_gen_b.backward()
         optim_gen_b.step()
         
