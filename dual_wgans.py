@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[15]:
+# In[83]:
 
 
 from __future__ import print_function
@@ -30,7 +30,7 @@ import matplotlib.animation as animation
 from IPython.display import HTML
 
 
-# In[16]:
+# In[84]:
 
 
 # Root directory for project
@@ -79,7 +79,7 @@ ngpu = torch.cuda.device_count()
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
-# In[17]:
+# In[85]:
 
 
 class DataLoader:
@@ -139,13 +139,13 @@ class DataLoader:
             yield torch.stack(x), torch.stack(y)
 
 
-# In[18]:
+# In[86]:
 
 
 data = DataLoader()
 
 
-# In[19]:
+# In[87]:
 
 
 def weights_init_normal(m):
@@ -157,7 +157,7 @@ def weights_init_normal(m):
         torch.nn.init.constant_(m.bias.data, 0.0)
 
 
-# In[20]:
+# In[88]:
 
 
 class Generator(nn.Module):
@@ -264,14 +264,14 @@ class Generator(nn.Module):
     
 
 
-# In[21]:
+# In[89]:
 
 
 gen_a = Generator().to(device)
 gen_b = Generator().to(device)
 
 
-# In[22]:
+# In[90]:
 
 
 class Discriminator(nn.Module):
@@ -312,20 +312,21 @@ class Discriminator(nn.Module):
         return x
 
 
-# In[23]:
+# In[91]:
 
 
 dis_a = Discriminator().to(device)
 dis_b = Discriminator().to(device)
 
 
-# In[24]:
+# In[92]:
 
 
-gen_a = nn.DataParallel(gen_a, list(range(ngpu)))
-dis_a = nn.DataParallel(dis_a, list(range(ngpu)))
-gen_b = nn.DataParallel(gen_b, list(range(ngpu)))
-dis_b = nn.DataParallel(dis_b, list(range(ngpu)))
+# DataParallel for more than 1 gpu
+# gen_a = nn.DataParallel(gen_a, list(range(ngpu)))
+# dis_a = nn.DataParallel(dis_a, list(range(ngpu)))
+# gen_b = nn.DataParallel(gen_b, list(range(ngpu)))
+# dis_b = nn.DataParallel(dis_b, list(range(ngpu)))
 
 gen_a.apply(weights_init_normal)
 dis_a.apply(weights_init_normal)
@@ -333,7 +334,7 @@ gen_b.apply(weights_init_normal)
 dis_b.apply(weights_init_normal)
 
 
-# In[25]:
+# In[93]:
 
 
 # Gradient penalty for Wasserstein Loss
@@ -351,7 +352,7 @@ def gradient_penalty(real_dis, fake_dis, discriminator):
     return lambda_gradient * gp
 
 
-# In[26]:
+# In[94]:
 
 
 optim_gen_a = torch.optim.RMSprop(gen_a.parameters(), lr, alpha)
@@ -368,6 +369,14 @@ optim_dis_b = torch.optim.RMSprop(dis_b.parameters(), lr, alpha)
 sample_interval = 25
 checkpoint_interval = 500
 
+prev_load = 0
+if(prev_load):
+    gen_a.load_state_dict(torch.load(proj_root + 'saved_models/dual_wgans/generator_a_1_1000.pth'))
+    dis_a.load_state_dict(torch.load(proj_root + 'saved_models/dual_wgans/discriminator_a_1_1000.pth'))
+    gen_b.load_state_dict(torch.load(proj_root + 'saved_models/dual_wgans/generator_b_1_1000.pth'))
+    dis_b.load_state_dict(torch.load(proj_root + 'saved_models/dual_wgans/discriminator_b_1_1000.pth'))
+
+    
 for epoch in range(num_epochs):
     for i in range(num_images // batch_size):
         x, y = next(data.data_generator())
@@ -428,12 +437,12 @@ for epoch in range(num_epochs):
 
         if i % sample_interval == 0:
             img_sample = torch.cat((real_a.data, fake_a.data, real_b.data, fake_b.data), -2)
-            save_image(img_sample, proj_root + 'saved_images/%d_%d.png' % (epoch, i), nrow=5, normalize=True)
+            save_image(img_sample, proj_root + 'saved_images/dual_wgans/%d_%d.png' % (epoch, i), nrow=5, normalize=True)
 
 
         if i % checkpoint_interval == 0:
-            torch.save(gen_a.state_dict(), proj_root + 'saved_models/generator_a_%d_%d.pth' % (epoch, i))
-            torch.save(gen_b.state_dict(), proj_root + 'saved_models/generator_b_%d_%d.pth' % (epoch, i))
-            torch.save(dis_a.state_dict(), proj_root + 'saved_models/discriminator_a_%d_%d.pth' % (epoch, i))
-            torch.save(dis_b.state_dict(), proj_root + 'saved_models/discriminator_b_%d_%d.pth' % (epoch, i))
+            torch.save(gen_a.state_dict(), proj_root + 'saved_models/dual_wgans/generator_a_%d_%d.pth' % (epoch, i))
+            torch.save(gen_b.state_dict(), proj_root + 'saved_models/dual_wgans/generator_b_%d_%d.pth' % (epoch, i))
+            torch.save(dis_a.state_dict(), proj_root + 'saved_models/dual_wgans/discriminator_a_%d_%d.pth' % (epoch, i))
+            torch.save(dis_b.state_dict(), proj_root + 'saved_models/dual_wgans/discriminator_b_%d_%d.pth' % (epoch, i))
 
