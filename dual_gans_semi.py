@@ -10,6 +10,7 @@ import argparse
 import os
 import random
 import glob
+import itertools
 from PIL import Image
 import torch
 import torchvision
@@ -361,11 +362,10 @@ dis_b.apply(weights_init_normal)
 
 
 criterion = torch.nn.BCELoss()
+criterion_pixelwise = torch.nn.L1Loss()
 
-optim_gen_a = torch.optim.RMSprop(gen_a.parameters(), lr, alpha)
-optim_gen_b = torch.optim.RMSprop(gen_b.parameters(), lr, alpha)
-optim_dis_a = torch.optim.RMSprop(dis_a.parameters(), lr, alpha)
-optim_dis_b = torch.optim.RMSprop(dis_b.parameters(), lr, alpha)
+optim_gen = torch.optim.RMSprop(itertools.chain(gen_a.parameters(), gen_b.parameters()), lr, alpha)
+optim_dis = torch.optim.RMSprop(itertools.chain(dis_a.parameters(), dis_b.parameters()), lr, alpha)
 
 
 # ### Train Loop
@@ -375,7 +375,7 @@ optim_dis_b = torch.optim.RMSprop(dis_b.parameters(), lr, alpha)
 
 sample_interval = 25
 checkpoint_interval = 500
-file_prefix = proj_root + 'saved_models/dual_gans/'
+file_prefix = proj_root + 'saved_models/dual_gans_semi/'
 
 e_tracker = EpochTracker(file_prefix + 'epoch.txt')
 
@@ -397,50 +397,50 @@ for epoch in range(e_tracker.epoch, num_epochs):
         fake = Variable(torch.zeros((real_a.size(0), 1)), requires_grad=False).to(device)
         
         # Training Discriminator A with real_A batch
-        optim_dis_a.zero_grad();
+        optim_dis.zero_grad();
         pred_real_dis_a = dis_a(real_a).view(-1, 1)
         err_real_dis_a = criterion(pred_real_dis_a, valid)
-        err_real_dis_a.backward()
         
         # Training Discriminator B with real_B batch
-        optim_dis_b.zero_grad();
         pred_real_dis_b = dis_b(real_b).view(-1, 1)
         err_real_dis_b = criterion(pred_real_dis_b, valid)
-        err_real_dis_b.backward()
         
         # Training Discriminator B with fake_B batch of Generator A
         fake_b = gen_a(real_a)
         pred_fake_dis_b = dis_b(fake_b.detach()).view(-1, 1)
         err_fake_dis_b = criterion(pred_fake_dis_b, fake)
-        err_fake_dis_b.backward()
         
         # Training Discriminator A with fake_A batch of Generator B
         fake_a = gen_b(real_b)
         pred_fake_dis_a = dis_a(fake_a.detach()).view(-1, 1)
         err_fake_dis_a = criterion(pred_fake_dis_a, fake)
-        err_fake_dis_a.backward()
         
         # Update params of Discriminator A and B
         err_dis_a = err_real_dis_a + err_fake_dis_a
-        optim_dis_a.step()
         err_dis_b = err_real_dis_b + err_fake_dis_b
-        optim_dis_b.step()
+        err_dis = err_dis_a + err_dis_b
+        err_dis.backward()
+        optim_dis.step()
         
         # Train and update Generator A based on Discriminator B's prediction
-        optim_gen_a.zero_grad()
+        optim_gen.zero_grad()
         fake_b_gen = gen_a(fake_a)
         pred_out_dis_b = dis_b(fake_b_gen).view(-1, 1)
-        err_gen_a = criterion(pred_out_dis_b, valid)
-        err_gen_a.backward()
-        optim_gen_a.step()
+        err_gen_a_pred = criterion(pred_out_dis_b, valid)
+        err_gen_a_pixel = criterion_pixelwise(fake_b[:3, :, :, :], real_b[:3, :, :, :]) + criterion_pixelwise(fake_b_gen[:3, :, :, :], real_b[:3, :, :, :])
+        err_gen_a = err_gen_a_pred + err_gen_a_pixel
         
         # Train and update Generator B based on Discriminator A's prediction
-        optim_gen_b.zero_grad()
         fake_a_gen = gen_b(fake_b)
         pred_out_dis_a = dis_a(fake_a_gen).view(-1, 1)
-        err_gen_b = criterion(pred_out_dis_a, valid)
-        err_gen_b.backward()
-        optim_gen_b.step()
+        err_gen_b_pred = criterion(pred_out_dis_a, valid)
+        err_gen_b_pixel = criterion_pixelwise(fake_a[:3, :, :, :], real_a[:3, :, :, :]) + criterion_pixelwise(fake_a_gen[:3, :, :, :], real_a[:3, :, :, :])
+        err_gen_b = err_gen_b_pred + err_gen_b_pixel
+        
+        # Update params of Generator A and B
+        err_gen = err_gen_a + err_gen_b
+        err_gen.backward()
+        optim_gen.step()
         
         # Print statistics and save checkpoints
         print("\r[Epoch %d/%d] [Batch %d/%d] [D_A loss: %f] [D_B loss: %f] [G_A loss: %f, G_B loss: %f]" %
@@ -451,11 +451,11 @@ for epoch in range(e_tracker.epoch, num_epochs):
 
         if i % sample_interval == 0:
             img_sample = torch.cat((real_a.data, fake_a.data, real_b.data, fake_b.data), -2)
-            save_image(img_sample, proj_root + 'saved_images/dual_gans/%d_%d.png' % (epoch, i), nrow=5, normalize=True)
+            save_image(img_sample, proj_root + 'saved_images/dual_gans_semi/%d_%d.png' % (epoch, i), nrow=5, normalize=True)
 
-            torch.save(gen_a.state_dict(), proj_root + 'saved_models/dual_gans/generator_a.pth')
-            torch.save(gen_b.state_dict(), proj_root + 'saved_models/dual_gans/generator_b.pth')
-            torch.save(dis_a.state_dict(), proj_root + 'saved_models/dual_gans/discriminator_a.pth')
-            torch.save(dis_b.state_dict(), proj_root + 'saved_models/dual_gans/discriminator_b.pth')
+            torch.save(gen_a.state_dict(), proj_root + 'saved_models/dual_gans_semi/generator_a.pth')
+            torch.save(gen_b.state_dict(), proj_root + 'saved_models/dual_gans_semi/generator_b.pth')
+            torch.save(dis_a.state_dict(), proj_root + 'saved_models/dual_gans_semi/discriminator_a.pth')
+            torch.save(dis_b.state_dict(), proj_root + 'saved_models/dual_gans_semi/discriminator_b.pth')
             e_tracker.write(epoch, i)
 
