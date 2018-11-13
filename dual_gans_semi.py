@@ -33,10 +33,10 @@ from IPython.display import HTML
 
 
 # Root directory for project
-proj_root = "/datasets/home/32/232/tdobhal/Project/"
+proj_root = "/datasets/home/73/673/h6gupta/Project/"
 
 # Root directory for dataset
-data_root = "/datasets/home/32/232/tdobhal/Project/6_train/images/"
+data_root = "/datasets/home/73/673/h6gupta/Project/6_train/images/"
 
 # Number of images in the directory
 num_images = 23418
@@ -321,6 +321,30 @@ dis_b = Discriminator().to(device)
 # In[10]:
 
 
+class EpochTracker():
+    def __init__(self, in_file):
+        self.epoch = 0
+        self.iter = 0
+        self.in_file = in_file
+        self.file_exists = os.path.isfile(in_file)
+        if self.file_exists:
+            with open(in_file, 'r') as f: 
+                d = f.read() 
+                a, b = d.split(";")
+                self.epoch = int(a)
+                self.iter = int(b)
+    
+    def write(self, epoch, iteration):
+        self.epoch = epoch
+        self.iter = iteration
+        data = "{};{}".format(self.epoch, self.iter)
+        with open(self.in_file, 'w') as f:
+            f.write(data)
+
+
+# In[11]:
+
+
 # DataParallel for more than 1 gpu
 # gen_a = nn.DataParallel(gen_a, list(range(ngpu)))
 # dis_a = nn.DataParallel(dis_a, list(range(ngpu)))
@@ -333,7 +357,7 @@ gen_b.apply(weights_init_normal)
 dis_b.apply(weights_init_normal)
 
 
-# In[11]:
+# In[12]:
 
 
 criterion = torch.nn.BCELoss()
@@ -351,16 +375,21 @@ optim_dis_b = torch.optim.RMSprop(dis_b.parameters(), lr, alpha)
 
 sample_interval = 25
 checkpoint_interval = 500
+file_prefix = proj_root + 'saved_models/dual_gans/'
 
-prev_load = 0
-if(prev_load):
-    gen_a.load_state_dict(torch.load(proj_root + 'saved_models/dual_gans/generator_a_1_1000.pth'))
-    dis_a.load_state_dict(torch.load(proj_root + 'saved_models/dual_gans/discriminator_a_1_1000.pth'))
-    gen_b.load_state_dict(torch.load(proj_root + 'saved_models/dual_gans/generator_b_1_1000.pth'))
-    dis_b.load_state_dict(torch.load(proj_root + 'saved_models/dual_gans/discriminator_b_1_1000.pth'))
+e_tracker = EpochTracker(file_prefix + 'epoch.txt')
+
+if(e_tracker.file_exists):
+    gen_a.load_state_dict(torch.load(file_prefix + 'generator_a.pth'))
+    dis_a.load_state_dict(torch.load(file_prefix + 'discriminator_a.pth'))
+    gen_b.load_state_dict(torch.load(file_prefix + 'generator_b.pth'))
+    dis_b.load_state_dict(torch.load(file_prefix + 'discriminator_b.pth'))
     
-for epoch in range(num_epochs):
+for epoch in range(e_tracker.epoch, num_epochs):
     for i in range(num_images // batch_size):
+        if epoch == e_tracker.epoch and i < e_tracker.iter:
+            continue
+            
         x, y = next(data.data_generator())
         real_a = Variable(x).to(device)
         real_b = Variable(y).to(device)     
@@ -424,10 +453,9 @@ for epoch in range(num_epochs):
             img_sample = torch.cat((real_a.data, fake_a.data, real_b.data, fake_b.data), -2)
             save_image(img_sample, proj_root + 'saved_images/dual_gans/%d_%d.png' % (epoch, i), nrow=5, normalize=True)
 
-
-        if i % checkpoint_interval == 0:
-            torch.save(gen_a.state_dict(), proj_root + 'saved_models/dual_gans/generator_a_%d_%d.pth' % (epoch, i))
-            torch.save(gen_b.state_dict(), proj_root + 'saved_models/dual_gans/generator_b_%d_%d.pth' % (epoch, i))
-            torch.save(dis_a.state_dict(), proj_root + 'saved_models/dual_gans/discriminator_a_%d_%d.pth' % (epoch, i))
-            torch.save(dis_b.state_dict(), proj_root + 'saved_models/dual_gans/discriminator_b_%d_%d.pth' % (epoch, i))
+            torch.save(gen_a.state_dict(), proj_root + 'saved_models/dual_gans/generator_a.pth')
+            torch.save(gen_b.state_dict(), proj_root + 'saved_models/dual_gans/generator_b.pth')
+            torch.save(dis_a.state_dict(), proj_root + 'saved_models/dual_gans/discriminator_a.pth')
+            torch.save(dis_b.state_dict(), proj_root + 'saved_models/dual_gans/discriminator_b.pth')
+            e_tracker.write(epoch, i)
 

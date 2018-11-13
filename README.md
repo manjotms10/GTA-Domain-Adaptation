@@ -1,1 +1,1 @@
-# GTA-Domain-Adaptation - DualGans
+# GTA-Domain-Adaptation - DualGans with Semi-supervised Training
