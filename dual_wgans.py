@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[43]:
+# In[72]:
 
 
 from __future__ import print_function
@@ -30,7 +30,7 @@ import matplotlib.animation as animation
 from IPython.display import HTML
 
 
-# In[44]:
+# In[73]:
 
 
 # Root directory for project
@@ -79,7 +79,7 @@ ngpu = torch.cuda.device_count()
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
-# In[45]:
+# In[74]:
 
 
 class DataLoader:
@@ -139,13 +139,13 @@ class DataLoader:
             yield torch.stack(x), torch.stack(y)
 
 
-# In[46]:
+# In[75]:
 
 
 data = DataLoader()
 
 
-# In[47]:
+# In[76]:
 
 
 def weights_init_normal(m):
@@ -157,7 +157,7 @@ def weights_init_normal(m):
         torch.nn.init.constant_(m.bias.data, 0.0)
 
 
-# In[48]:
+# In[77]:
 
 
 class Generator(nn.Module):
@@ -264,14 +264,14 @@ class Generator(nn.Module):
     
 
 
-# In[49]:
+# In[78]:
 
 
 gen_a = Generator().to(device)
 gen_b = Generator().to(device)
 
 
-# In[50]:
+# In[79]:
 
 
 class Discriminator(nn.Module):
@@ -312,14 +312,14 @@ class Discriminator(nn.Module):
         return x
 
 
-# In[51]:
+# In[80]:
 
 
 dis_a = Discriminator().to(device)
 dis_b = Discriminator().to(device)
 
 
-# In[52]:
+# In[81]:
 
 
 class EpochTracker():
@@ -331,7 +331,9 @@ class EpochTracker():
         if self.file_exists:
             with open(in_file, 'r') as f: 
                 d = f.read() 
-                self.epoch, self.iter = d.split(";") 
+                a, b = d.split(";")
+                self.epoch = int(a)
+                self.iter = int(b)
      
     def write(self, epoch, iteration):
         self.epoch = epoch
@@ -341,7 +343,7 @@ class EpochTracker():
             f.write(data)
 
 
-# In[53]:
+# In[82]:
 
 
 # DataParallel for more than 1 gpu
@@ -356,7 +358,7 @@ gen_b.apply(weights_init_normal)
 dis_b.apply(weights_init_normal)
 
 
-# In[54]:
+# In[83]:
 
 
 # Gradient penalty for Wasserstein Loss
@@ -374,7 +376,7 @@ def gradient_penalty(real_dis, fake_dis, discriminator):
     return lambda_gradient * gp
 
 
-# In[55]:
+# In[84]:
 
 
 optim_gen_a = torch.optim.RMSprop(gen_a.parameters(), lr, alpha)
@@ -403,7 +405,7 @@ if(e_tracker.file_exists):
     
 for epoch in range(e_tracker.epoch, num_epochs):
     for i in range(num_images // batch_size):
-        if epoch == e_tracker.epoch and i < e_tracker.iter:
+        if epoch == e_tracker.epoch and i <= e_tracker.iter:
             continue    
         
         for j in range(num_critic):
