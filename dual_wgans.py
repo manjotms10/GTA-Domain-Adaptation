@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[72]:
+# In[1]:
 
 
 from __future__ import print_function
@@ -30,7 +30,7 @@ import matplotlib.animation as animation
 from IPython.display import HTML
 
 
-# In[73]:
+# In[2]:
 
 
 # Root directory for project
@@ -79,7 +79,7 @@ ngpu = torch.cuda.device_count()
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
-# In[74]:
+# In[3]:
 
 
 class DataLoader:
@@ -139,13 +139,13 @@ class DataLoader:
             yield torch.stack(x), torch.stack(y)
 
 
-# In[75]:
+# In[4]:
 
 
 data = DataLoader()
 
 
-# In[76]:
+# In[5]:
 
 
 def weights_init_normal(m):
@@ -157,7 +157,7 @@ def weights_init_normal(m):
         torch.nn.init.constant_(m.bias.data, 0.0)
 
 
-# In[77]:
+# In[6]:
 
 
 class Generator(nn.Module):
@@ -264,14 +264,14 @@ class Generator(nn.Module):
     
 
 
-# In[78]:
+# In[7]:
 
 
 gen_a = Generator().to(device)
 gen_b = Generator().to(device)
 
 
-# In[79]:
+# In[8]:
 
 
 class Discriminator(nn.Module):
@@ -312,14 +312,14 @@ class Discriminator(nn.Module):
         return x
 
 
-# In[80]:
+# In[9]:
 
 
 dis_a = Discriminator().to(device)
 dis_b = Discriminator().to(device)
 
 
-# In[81]:
+# In[10]:
 
 
 class EpochTracker():
@@ -343,7 +343,7 @@ class EpochTracker():
             f.write(data)
 
 
-# In[82]:
+# In[11]:
 
 
 # DataParallel for more than 1 gpu
@@ -358,7 +358,7 @@ gen_b.apply(weights_init_normal)
 dis_b.apply(weights_init_normal)
 
 
-# In[83]:
+# In[12]:
 
 
 # Gradient penalty for Wasserstein Loss
@@ -376,8 +376,10 @@ def gradient_penalty(real_dis, fake_dis, discriminator):
     return lambda_gradient * gp
 
 
-# In[84]:
+# In[2]:
 
+
+criterion_pixel = nn.L1Loss()
 
 optim_gen_a = torch.optim.RMSprop(gen_a.parameters(), lr, alpha)
 optim_gen_b = torch.optim.RMSprop(gen_b.parameters(), lr, alpha)
@@ -392,7 +394,7 @@ optim_dis_b = torch.optim.RMSprop(dis_b.parameters(), lr, alpha)
 
 sample_interval = 25
 checkpoint_interval = 100
-file_prefix = proj_root + 'saved_models/dual_wgans/'
+file_prefix = proj_root + 'saved_models/dual_wgans2/'
 
 e_tracker = EpochTracker(file_prefix + 'epoch.txt')
 
@@ -445,7 +447,9 @@ for epoch in range(e_tracker.epoch, num_epochs):
         optim_gen_a.zero_grad()
         fake_b_gen = gen_a(fake_a)
         pred_out_dis_b = dis_b(fake_b_gen).view(-1)
-        err_gen_a = -pred_out_dis_b.mean()
+        err_gen_a_pred = -pred_out_dis_b.mean()
+        err_gen_a_pixel = criterion_pixel(fake_b_gen, real_b)
+        err_gen_a = err_gen_a_pred + err_gen_a_pixel
         err_gen_a.backward()
         optim_gen_a.step()
         
@@ -453,7 +457,9 @@ for epoch in range(e_tracker.epoch, num_epochs):
         optim_gen_b.zero_grad()
         fake_a_gen = gen_b(fake_b)
         pred_out_dis_a = dis_a(fake_a_gen).view(-1)
-        err_gen_b = -pred_out_dis_a.mean()
+        err_gen_b_pred = -pred_out_dis_a.mean()
+        err_gen_b_pixel = criterion_pixel(fake_a_gen, real_a)
+        err_gen_b = err_gen_b_pred + err_gen_b_pixel
         err_gen_b.backward()
         optim_gen_b.step()
         
@@ -466,11 +472,11 @@ for epoch in range(e_tracker.epoch, num_epochs):
 
         if i % sample_interval == 0:
             img_sample = torch.cat((real_a.data, fake_a.data, real_b.data, fake_b.data), -2)
-            save_image(img_sample, proj_root + 'saved_images/dual_wgans/%d_%d.png' % (epoch, i), nrow=5, normalize=True)
+            save_image(img_sample, proj_root + 'saved_images/dual_wgans2/%d_%d.png' % (epoch, i), nrow=5, normalize=True)
 
-            torch.save(gen_a.state_dict(), proj_root + 'saved_models/dual_wgans/generator_a.pth')
-            torch.save(gen_b.state_dict(), proj_root + 'saved_models/dual_wgans/generator_b.pth')
-            torch.save(dis_a.state_dict(), proj_root + 'saved_models/dual_wgans/discriminator_a.pth')
-            torch.save(dis_b.state_dict(), proj_root + 'saved_models/dual_wgans/discriminator_b.pth')
+            torch.save(gen_a.state_dict(), proj_root + 'saved_models/dual_wgans2/generator_a.pth')
+            torch.save(gen_b.state_dict(), proj_root + 'saved_models/dual_wgans2/generator_b.pth')
+            torch.save(dis_a.state_dict(), proj_root + 'saved_models/dual_wgans2/discriminator_a.pth')
+            torch.save(dis_b.state_dict(), proj_root + 'saved_models/dual_wgans2/discriminator_b.pth')
             e_tracker.write(epoch, i)
 
