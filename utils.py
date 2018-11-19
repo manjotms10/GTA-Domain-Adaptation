@@ -52,3 +52,24 @@ def sample_images(data, batches_done, generator, number):
     img_sample = torch.cat((real_A.data, fake_B.data, real_B.data), -2)
     save_image(img_sample, 'saved_images/%s.png' % (number), nrow=5, normalize=True)
     return x, y
+
+
+class EpochTracker():
+    def __init__(self, in_file):
+        self.epoch = 0
+        self.iter = 0
+        self.in_file = in_file
+        self.file_exists = os.path.isfile(in_file)
+        if self.file_exists:
+            with open(in_file, 'r') as f:
+                d = f.read()
+                a, b = d.split(";")
+                self.epoch = int(a)
+                self.iter = int(b)
+
+    def write(self, epoch, iteration):
+        self.epoch = epoch
+        self.iter = iteration
+        data = "{};{}".format(self.epoch, self.iter)
+        with open(self.in_file, 'w') as f:
+            f.write(data)
