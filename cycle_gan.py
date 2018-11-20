@@ -1,6 +1,9 @@
 import itertools
+
+import numpy as np
 import torch
-from torch import nn
+from torch import nn, Tensor
+from torch.autograd import Variable
 from torchvision.utils import save_image
 
 from utils import EpochTracker, weights_init_normal
@@ -30,7 +33,7 @@ class CycleGAN:
             self.DisB = self.init_net(CycleGanDiscriminator())
 
             # define loss functions
-            self.criterionGAN = nn.BCELoss().to(device)
+            self.criterionGAN = nn.BCELoss()
             self.criterionCycle = nn.L1Loss()
             self.criterionIdt = nn.L1Loss()
 
@@ -54,8 +57,8 @@ class CycleGAN:
                 self.DisB.load_state_dict(torch.load(file_prefix + 'discriminator_b.pth'))
 
     def set_input(self, real_A, real_B):
-        self.real_A = real_A.to(self.device)
-        self.real_B = real_B.to(self.device)
+        self.real_A = real_A
+        self.real_B = real_B
 
     def forward(self):
         self.fake_B = self.GenA(self.real_A)
@@ -65,11 +68,14 @@ class CycleGAN:
         self.new_B = self.GenA(self.fake_A)
 
     def backward_d(self, netD, real, fake):
+        true = Variable(Tensor(np.ones((real.size(0), 1))), requires_grad=False)
+        false = Variable(Tensor(np.zeros((real.size(0), 1))), requires_grad=False)
+
         predict_real = netD(real)
-        loss_d_real = self.criterionGAN(predict_real, True)
+        loss_d_real = self.criterionGAN(predict_real, true)
 
         predict_fake = netD(fake.detach())
-        loss_d_fake = self.criterionGAN(predict_fake, False)
+        loss_d_fake = self.criterionGAN(predict_fake, false)
 
         loss_d = (loss_d_real + loss_d_fake) * 0.5
         loss_d.backward()
@@ -77,8 +83,9 @@ class CycleGAN:
         return loss_d
 
     def backward_g(self):
-        self.loss_genA = self.criterionGAN(self.DisA(self.fake_B), True)
-        self.loss_genB = self.criterionGAN(self.DisB(self.fake_A), True)
+        valid = Variable(Tensor(np.ones((self.real_A.size(0), 1))), requires_grad=False)
+        self.loss_genA = self.criterionGAN(self.DisA(self.fake_B), valid)
+        self.loss_genB = self.criterionGAN(self.DisB(self.fake_A), valid)
 
         # Forward cycle loss
         self.loss_cycle_A = self.criterionCycle(self.new_A, self.real_A) * self.lambda_A
