@@ -3,13 +3,13 @@ import torch
 from torch import nn
 from torchvision.utils import save_image
 
-from utils import EpochTracker
+from utils import EpochTracker, weights_init_normal
 from networks import CycleGanDiscriminator, CycleGanResnetGenerator
 
 
 class CycleGAN:
 
-    def __init__(self, options, device, file_prefix, learning_rate, beta1, train=False):
+    def __init__(self, device, file_prefix, learning_rate, beta1, train=False):
         self.name = "CycleGAN"
         self.lambda_A = 10.0  # weight for cycle-loss A->B->A
         self.lambda_B = 10.0  # weight for cycle-loss B->A->B
@@ -20,14 +20,14 @@ class CycleGAN:
 
         self.epoch_tracker = EpochTracker(file_prefix + "epoch.txt")
 
-        self.GenA = CycleGanResnetGenerator().to(device)
-        self.GenB = CycleGanResnetGenerator().to(device)
+        self.GenA = self.init_net(CycleGanResnetGenerator())
+        self.GenB = self.init_net(CycleGanResnetGenerator())
 
         self.real_A = self.real_B = self.fake_A = self.fake_B = self.new_A = self.new_B = None
 
         if train:
-            self.DisA = CycleGanDiscriminator().to(device)
-            self.DisB = CycleGanDiscriminator().to(device)
+            self.DisA = self.init_net(CycleGanDiscriminator())
+            self.DisB = self.init_net(CycleGanDiscriminator())
 
             # define loss functions
             self.criterionGAN = nn.BCELoss().to(device)
@@ -52,7 +52,6 @@ class CycleGAN:
             if train:
                 self.DisA.load_state_dict(torch.load(file_prefix + 'discriminator_a.pth'))
                 self.DisB.load_state_dict(torch.load(file_prefix + 'discriminator_b.pth'))
-
 
     def set_input(self, real_A, real_B):
         self.real_A = real_A.to(self.device)
@@ -121,10 +120,10 @@ class CycleGAN:
         img_sample = torch.cat((self.real_A.data, self.fake_A.data, self.real_B.data, self.fake_B.data), -2)
         save_image(img_sample, path + "{}_{}.png".format(epoch, iteration), nrow=5, normalize=True)
 
-        torch.save(self.GenA.state_dict(), self.file_prefix + "generator_a.pth")
-        torch.save(self.GenB.state_dict(), self.file_prefix + "generator_b.pth")
-        torch.save(self.DisA.state_dict(), self.file_prefix + "discriminator_a.pth")
-        torch.save(self.DisB.state_dict(), self.file_prefix + "discriminator_b.pth")
+        torch.save(self.GenA.module.cpu().state_dict(), self.file_prefix + "generator_a.pth")
+        torch.save(self.GenB.module.cpu().state_dict(), self.file_prefix + "generator_b.pth")
+        torch.save(self.DisA.module.cpu().state_dict(), self.file_prefix + "discriminator_a.pth")
+        torch.save(self.DisB.module.cpu().state_dict(), self.file_prefix + "discriminator_b.pth")
         self.epoch_tracker.write(epoch, iteration)
 
     @staticmethod
@@ -133,3 +132,14 @@ class CycleGAN:
             if net is not None:
                 for param in net.parameters():
                     param.requires_grad = requires_grad
+
+    @staticmethod
+    def init_net(net):
+        gpu_ids = list(range(torch.cuda.device_count()))
+        if len(gpu_ids) > 0:
+            assert(torch.cuda.is_available())
+            net.to(gpu_ids[0])
+            net = torch.nn.DataParallel(net, gpu_ids)
+        net.apply(weights_init_normal)
+        return net
+

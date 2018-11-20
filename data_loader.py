@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 
 
 class DataLoader:
-    def __init__(self, data_root, image_size, batch_size):
+    def __init__(self, data_root, image_size, batch_size, paired=True):
         '''
         Parameters:
 
@@ -25,12 +25,13 @@ class DataLoader:
                 torchvision.transforms.ToTensor(),
                 torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
             ])
+        self.paired = paired
 
     def image_loader(self, image_name):
         """load image, returns cuda tensor"""
         image = Image.open(image_name)
         image = self.data_transforms(image).float()
-        image = torch.autograd.Variable(image, requires_grad=True)
+        image = torch.autograd.Variable(image, requires_grad=False)
         image = image.unsqueeze(0)  #this is for VGG, may not be needed for ResNet
         return image[0].to(self.device)  #assumes that you're using GPU
 
@@ -57,8 +58,15 @@ class DataLoader:
 
         while True:
             x, y = [], []
-            idx = np.random.choice(self.names, batch_size)
-            for i in range(idx.shape[0]):
-                x.append(self.image_loader(images_dir + idx[i]))
-                y.append(self.image_loader(labels_dir + idx[i]))
+            x_idx = np.random.choice(self.names, batch_size)
+
+            if self.paired:
+                y_idx = x_idx
+            else:
+                y_idx = np.random.choice(self.names, batch_size)
+
+            for i in range(x_idx.shape[0]):
+                x.append(self.image_loader(images_dir + x_idx[i]))
+                y.append(self.image_loader(labels_dir + y_idx[i]))
+
             yield torch.stack(x), torch.stack(y)
