@@ -21,7 +21,7 @@ def get_opts():
     opt = {
         "n_epochs": 100,
         "dataset_name": 'GTA',
-        "batch_size": 8,
+        "batch_size": 4,
         "lr": 0.0002,
         "b1": 0.5,
         "b2": 0.99,

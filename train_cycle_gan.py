@@ -25,7 +25,7 @@ def train_cycle_gan():
     ensure_dir(models_prefix)
     ensure_dir(images_prefix)
 
-    cycle_gan = CycleGAN(device, models_prefix, opt["lr"], opt["b1"])
+    cycle_gan = CycleGAN(device, models_prefix, opt["lr"], opt["b1"], train=True)
     total_batches = total_images // opt['batch_size']
 
     for epoch in range(opt['n_epochs']):
