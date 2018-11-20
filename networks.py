@@ -212,12 +212,12 @@ class CycleGanResnetGenerator(nn.Module):
 
         self.in_channels = 3
         self.out_channels = 3
-        self.num_resnet_blocks = 9
+        self.num_resnet_blocks = 6
 
         n_1_filters = 64
 
         model = [nn.ReflectionPad2d(3),
-                 nn.Conv2d(self.input_nc, n_1_filters, kernel_size=7, padding=0,
+                 nn.Conv2d(self.in_channels, n_1_filters, kernel_size=7, padding=0,
                            bias=nn.InstanceNorm2d),
                  nn.BatchNorm2d(n_1_filters),
                  nn.ReLU(True)]
@@ -234,7 +234,7 @@ class CycleGanResnetGenerator(nn.Module):
         # 9 Resnet Blocks
         in_ch = 4 * n_1_filters
         for i in range(self.num_resnet_blocks):
-            model += [ResnetBlock(in_ch, use_dropout)]
+            model += [CycleGanResnetBlock(in_ch, use_dropout)]
 
         # We up-sample for 2 layers
         for i in range(2):
@@ -258,10 +258,10 @@ class CycleGanResnetGenerator(nn.Module):
 
 
 # Resnet Module to be used in Generator
-class ResnetBlock(nn.Module):
+class CycleGanResnetBlock(nn.Module):
 
     def __init__(self, dim, use_dropout=True):
-        super(ResnetBlock, self).__init__()
+        super(CycleGanResnetBlock, self).__init__()
 
         conv_block = [nn.ReflectionPad2d(1),
                       nn.Conv2d(dim, dim, kernel_size=3, padding=0,
