@@ -10,6 +10,7 @@ import argparse
 import os
 import random
 import glob
+import pickle
 from PIL import Image
 import torch
 import torchvision
@@ -85,8 +86,8 @@ class DataLoader:
         self.data_path = data_root
         self.image_size = image_size
         self.batch_size = batch_size
-        self.train_names = glob.glob(self.data_path + 'real_A/*')
-        self.names = [self.train_names[i].split('/')[-1] for i in range(len(self.train_names))]
+        self.train_test = pickle.load(open( "train_test.p", "rb"))
+        self.names = self.train_test['train']
         self.data_transforms = torchvision.transforms.Compose([
                 torchvision.transforms.Resize(image_size),
                 torchvision.transforms.CenterCrop(image_size),
@@ -98,7 +99,7 @@ class DataLoader:
         """load image, returns cuda tensor"""
         image = Image.open(image_name)
         image = self.data_transforms(image).float()
-        image = torch.autograd.Variable(image, requires_grad=True)
+        image = torch.autograd.Variable(image, requires_grad=False)
         image = image.unsqueeze(0)  # this is for VGG, may not be needed for ResNet
         return image[0].to(self.device)  # assumes that you're using GPU
 
@@ -321,11 +322,35 @@ dis_b = Discriminator().to(device)
 # In[10]:
 
 
+class EpochTracker():
+    def __init__(self, in_file):
+        self.epoch = 0
+        self.iter = 0
+        self.in_file = in_file
+        self.file_exists = os.path.isfile(in_file)
+        if self.file_exists:
+            with open(in_file, 'r') as f: 
+                d = f.read() 
+                a, b = d.split(";")
+                self.epoch = int(a)
+                self.iter = int(b)
+    
+    def write(self, epoch, iteration):
+        self.epoch = epoch
+        self.iter = iteration
+        data = "{};{}".format(self.epoch, self.iter)
+        with open(self.in_file, 'w') as f:
+            f.write(data)
+
+
+# In[11]:
+
+
 # DataParallel for more than 1 gpu
-# gen_a = nn.DataParallel(gen_a, list(range(ngpu)))
-# dis_a = nn.DataParallel(dis_a, list(range(ngpu)))
-# gen_b = nn.DataParallel(gen_b, list(range(ngpu)))
-# dis_b = nn.DataParallel(dis_b, list(range(ngpu)))
+gen_a = nn.DataParallel(gen_a, list(range(ngpu)))
+dis_a = nn.DataParallel(dis_a, list(range(ngpu)))
+gen_b = nn.DataParallel(gen_b, list(range(ngpu)))
+dis_b = nn.DataParallel(dis_b, list(range(ngpu)))
 
 gen_a.apply(weights_init_normal)
 dis_a.apply(weights_init_normal)
@@ -333,10 +358,11 @@ gen_b.apply(weights_init_normal)
 dis_b.apply(weights_init_normal)
 
 
-# In[11]:
+# In[12]:
 
 
 criterion = torch.nn.BCELoss()
+criterion_pixel = nn.L1Loss()
 
 optim_gen_a = torch.optim.RMSprop(gen_a.parameters(), lr, alpha)
 optim_gen_b = torch.optim.RMSprop(gen_b.parameters(), lr, alpha)
@@ -346,21 +372,25 @@ optim_dis_b = torch.optim.RMSprop(dis_b.parameters(), lr, alpha)
 
 # ### Train Loop
 
-# In[ ]:
+# In[13]:
 
 
 sample_interval = 25
 checkpoint_interval = 500
+file_prefix = proj_root + 'saved_models/dual_gans/'
 
-prev_load = 0
-if(prev_load):
-    gen_a.load_state_dict(torch.load(proj_root + 'saved_models/dual_gans/generator_a_1_1000.pth'))
-    dis_a.load_state_dict(torch.load(proj_root + 'saved_models/dual_gans/discriminator_a_1_1000.pth'))
-    gen_b.load_state_dict(torch.load(proj_root + 'saved_models/dual_gans/generator_b_1_1000.pth'))
-    dis_b.load_state_dict(torch.load(proj_root + 'saved_models/dual_gans/discriminator_b_1_1000.pth'))
+e_tracker = EpochTracker(file_prefix + 'epoch.txt')
+
+if(e_tracker.file_exists):
+    gen_a.module.load_state_dict(torch.load(file_prefix + 'generator_a.pth'))
+    dis_a.module.load_state_dict(torch.load(file_prefix + 'discriminator_a.pth'))
+    gen_b.module.load_state_dict(torch.load(file_prefix + 'generator_b.pth'))
+    dis_b.module.load_state_dict(torch.load(file_prefix + 'discriminator_b.pth'))
     
-for epoch in range(num_epochs):
+for epoch in range(e_tracker.epoch, num_epochs):
     for i in range(num_images // batch_size):
+        if epoch == e_tracker.epoch and i < e_tracker.iter:
+            continue    
         x, y = next(data.data_generator())
         real_a = Variable(x).to(device)
         real_b = Variable(y).to(device)     
@@ -401,7 +431,9 @@ for epoch in range(num_epochs):
         optim_gen_a.zero_grad()
         fake_b_gen = gen_a(fake_a)
         pred_out_dis_b = dis_b(fake_b_gen).view(-1, 1)
-        err_gen_a = criterion(pred_out_dis_b, valid)
+        err_gen_a_pred = criterion(pred_out_dis_b, valid)
+        err_gen_a_pixel_recon = criterion_pixel(fake_b_gen, real_b)
+        err_gen_a = err_gen_a_pred + err_gen_a_pixel_recon
         err_gen_a.backward()
         optim_gen_a.step()
         
@@ -409,7 +441,9 @@ for epoch in range(num_epochs):
         optim_gen_b.zero_grad()
         fake_a_gen = gen_b(fake_b)
         pred_out_dis_a = dis_a(fake_a_gen).view(-1, 1)
-        err_gen_b = criterion(pred_out_dis_a, valid)
+        err_gen_b_pred = criterion(pred_out_dis_a, valid)
+        err_gen_b_pixel_recon = criterion_pixel(fake_a_gen, real_a)
+        err_gen_b = err_gen_b_pred + err_gen_b_pixel_recon
         err_gen_b.backward()
         optim_gen_b.step()
         
@@ -424,10 +458,9 @@ for epoch in range(num_epochs):
             img_sample = torch.cat((real_a.data, fake_a.data, real_b.data, fake_b.data), -2)
             save_image(img_sample, proj_root + 'saved_images/dual_gans/%d_%d.png' % (epoch, i), nrow=5, normalize=True)
 
-
-        if i % checkpoint_interval == 0:
-            torch.save(gen_a.state_dict(), proj_root + 'saved_models/dual_gans/generator_a_%d_%d.pth' % (epoch, i))
-            torch.save(gen_b.state_dict(), proj_root + 'saved_models/dual_gans/generator_b_%d_%d.pth' % (epoch, i))
-            torch.save(dis_a.state_dict(), proj_root + 'saved_models/dual_gans/discriminator_a_%d_%d.pth' % (epoch, i))
-            torch.save(dis_b.state_dict(), proj_root + 'saved_models/dual_gans/discriminator_b_%d_%d.pth' % (epoch, i))
+            torch.save(gen_a.module.state_dict(), proj_root + 'saved_models/dual_gans/generator_a.pth')
+            torch.save(gen_b.module.state_dict(), proj_root + 'saved_models/dual_gans/generator_b.pth')
+            torch.save(dis_a.module.state_dict(), proj_root + 'saved_models/dual_gans/discriminator_a.pth')
+            torch.save(dis_b.module.state_dict(), proj_root + 'saved_models/dual_gans/discriminator_b.pth')
+            e_tracker.write(epoch, i)
 
