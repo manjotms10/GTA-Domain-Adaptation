@@ -206,7 +206,7 @@ class Discriminator(nn.Module):
 # https://github.com/jcjohnson/fast-neural-style/
 class CycleGanResnetGenerator(nn.Module):
 
-    def __init__(self, use_dropout=True):
+    def __init__(self, ngf=32, use_dropout=True):
 
         super(CycleGanResnetGenerator, self).__init__()
 
@@ -214,17 +214,15 @@ class CycleGanResnetGenerator(nn.Module):
         self.out_channels = 3
         self.num_resnet_blocks = 6
 
-        n_1_filters = 64
-
         model = [nn.ReflectionPad2d(3),
-                 nn.Conv2d(self.in_channels, n_1_filters, kernel_size=7, padding=0,
+                 nn.Conv2d(self.in_channels, ngf, kernel_size=7, padding=0,
                            bias=nn.InstanceNorm2d),
-                 nn.BatchNorm2d(n_1_filters),
+                 nn.BatchNorm2d(ngf),
                  nn.ReLU(True)]
 
         # we down-sample for 2 layers
         for i in range(2):
-            in_ch = 2**i * n_1_filters
+            in_ch = 2**i * ngf
             out_ch = 2 * in_ch
             model += [nn.Conv2d(in_ch, out_ch, kernel_size=3, stride=2,
                                 padding=1, bias=nn.InstanceNorm2d),
@@ -232,13 +230,13 @@ class CycleGanResnetGenerator(nn.Module):
                       nn.ReLU(True)]
 
         # 9 Resnet Blocks
-        in_ch = 4 * n_1_filters
+        in_ch = 4 * ngf
         for i in range(self.num_resnet_blocks):
             model += [CycleGanResnetBlock(in_ch, use_dropout)]
 
         # We up-sample for 2 layers
         for i in range(2):
-            in_ch = 2**(2 - i) * n_1_filters
+            in_ch = 2**(2 - i) * ngf
             out_ch = int(in_ch / 2.0)
             model += [nn.ConvTranspose2d(in_ch, out_ch,
                                          kernel_size=3, stride=2,
@@ -248,7 +246,7 @@ class CycleGanResnetGenerator(nn.Module):
                       nn.ReLU(True)]
 
         model += [nn.ReflectionPad2d(3)]
-        model += [nn.Conv2d(n_1_filters, self.out_channels, kernel_size=7, padding=0)]
+        model += [nn.Conv2d(ngf, self.out_channels, kernel_size=7, padding=0)]
         model += [nn.Tanh()]
 
         self.model = nn.Sequential(*model)
@@ -285,13 +283,12 @@ class CycleGanResnetBlock(nn.Module):
 
 
 class CycleGanDiscriminator(nn.Module):
-    def __init__(self, n_layers=3, use_sigmoid=False):
+    def __init__(self, ndf=32, n_layers=3, use_sigmoid=False):
         super(CycleGanDiscriminator, self).__init__()
 
         self.input_channels = 3
-        self.n_1_filters = 64
 
-        model = [nn.Conv2d(self.input_channels, self.n_1_filters,
+        model = [nn.Conv2d(self.input_channels, ndf,
                       kernel_size=4, stride=2, padding=1),
                  nn.LeakyReLU(0.2, True)]
 
@@ -299,7 +296,7 @@ class CycleGanDiscriminator(nn.Module):
 
         for n in range(1, n_layers):
             in_ch = out_ch
-            out_ch = min(2**n, 8) * self.n_1_filters
+            out_ch = min(2**n, 8) * ndf
             model += [
                 nn.Conv2d(in_ch, out_ch, kernel_size=4, stride=2,
                           padding=1, bias=nn.InstanceNorm2d),
@@ -308,7 +305,7 @@ class CycleGanDiscriminator(nn.Module):
             ]
 
         in_ch = out_ch
-        out_ch = min(2**n_layers, 8) * self.n_1_filters
+        out_ch = min(2**n_layers, 8) * ndf
         model += [
             nn.Conv2d(in_ch, out_ch, kernel_size=4, stride=1, padding=1,
                       bias=nn.InstanceNorm2d),

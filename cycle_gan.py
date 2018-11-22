@@ -13,7 +13,6 @@ from networks import CycleGanDiscriminator, CycleGanResnetGenerator
 class CycleGAN:
 
     def __init__(self, device, file_prefix, learning_rate, beta1, train=False):
-        self.name = "CycleGAN"
         self.lambda_A = 10.0  # weight for cycle-loss A->B->A
         self.lambda_B = 10.0  # weight for cycle-loss B->A->B
 
