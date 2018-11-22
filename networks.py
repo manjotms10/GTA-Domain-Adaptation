@@ -1,6 +1,6 @@
 from torch import nn
-from torch.nn import functional as F
 import torch
+
 
 class GeneratorUNet(nn.Module):
     def __init__(self):
@@ -212,7 +212,7 @@ class CycleGanResnetGenerator(nn.Module):
 
         self.in_channels = 3
         self.out_channels = 3
-        self.num_resnet_blocks = 6
+        self.num_resnet_blocks = 9
 
         model = [nn.ReflectionPad2d(3),
                  nn.Conv2d(self.in_channels, ngf, kernel_size=7, padding=0,
@@ -283,7 +283,7 @@ class CycleGanResnetBlock(nn.Module):
 
 
 class CycleGanDiscriminator(nn.Module):
-    def __init__(self, ndf=32, n_layers=3, use_sigmoid=False):
+    def __init__(self, ndf=32, n_layers=3):
         super(CycleGanDiscriminator, self).__init__()
 
         self.input_channels = 3
@@ -292,7 +292,7 @@ class CycleGanDiscriminator(nn.Module):
                       kernel_size=4, stride=2, padding=1),
                  nn.LeakyReLU(0.2, True)]
 
-        out_ch = self.n_1_filters
+        out_ch = ndf
 
         for n in range(1, n_layers):
             in_ch = out_ch
@@ -315,10 +315,10 @@ class CycleGanDiscriminator(nn.Module):
 
         model += [nn.Conv2d(out_ch, 1, kernel_size=4, stride=1, padding=1)]
 
-        if use_sigmoid:
-            model += [nn.Sigmoid()]
-
         self.model = nn.Sequential(*model)
+        self.fc = nn.Linear(900,1)
 
     def forward(self, input):
-        return self.model(input)
+        x = self.model(input)
+        x = x.view(x.size(0), -1)
+        return nn.functional.sigmoid(self.fc(x))
