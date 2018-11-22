@@ -105,7 +105,7 @@ class DataLoader:
         """load image, returns cuda tensor"""
         image = Image.open(image_name)
         image = self.data_transforms(image).float()
-        image = torch.autograd.Variable(image, requires_grad=True)
+        image = torch.autograd.Variable(image, requires_grad=False)
         image = image.unsqueeze(0)  # this is for VGG, may not be needed for ResNet
         return image[0].to(self.device)  # assumes that you're using GPU
 
