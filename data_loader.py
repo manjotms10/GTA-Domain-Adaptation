@@ -1,4 +1,4 @@
-import glob
+import pickle
 
 import numpy as np
 import torch
@@ -17,8 +17,8 @@ class DataLoader:
         self.data_path = data_root
         self.image_size = image_size
         self.batch_size = batch_size
-        self.train_names = glob.glob(self.data_path + 'real_A/*')
-        self.names = [self.train_names[i].split('/')[-1] for i in range(len(self.train_names))]
+        self.train_test = pickle.load(open( "train_test.p", "rb"))
+        self.names = self.train_test['train']
         self.data_transforms = torchvision.transforms.Compose([
                 torchvision.transforms.Resize(image_size),
                 torchvision.transforms.CenterCrop(image_size),
@@ -56,17 +56,23 @@ class DataLoader:
         images_dir = root + 'real_A/'
         labels_dir = root + 'fake_B/'
 
+        x_indexes = np.random.permutation(len(self.names))
+        y_indexes = np.random.permutation(len(self.names))
+        i = 0
+
         while True:
             x, y = [], []
-            x_idx = np.random.choice(self.names, batch_size)
+            x_idx = x_indexes[i*batch_size:(i+1)*batch_size]
 
             if self.paired:
                 y_idx = x_idx
             else:
-                y_idx = np.random.choice(self.names, batch_size)
+                y_idx = y_indexes[i*batch_size:(i+1)*batch_size]
 
-            for i in range(x_idx.shape[0]):
-                x.append(self.image_loader(images_dir + x_idx[i]))
-                y.append(self.image_loader(labels_dir + y_idx[i]))
+            i += 1
+
+            for j in range(len(x_idx)):
+                x.append(self.image_loader(images_dir + self.names[x_idx[j]]))
+                y.append(self.image_loader(labels_dir + self.names[y_idx[j]]))
 
             yield torch.stack(x), torch.stack(y)

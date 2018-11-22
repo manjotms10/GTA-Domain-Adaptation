@@ -1,6 +1,8 @@
 import os
+import pickle
 
 import torch
+import numpy as np
 from torch.autograd import Variable
 from torchvision.utils import save_image
 
@@ -73,3 +75,20 @@ class EpochTracker():
         data = "{};{}".format(self.epoch, self.iter)
         with open(self.in_file, 'w') as f:
             f.write(data)
+
+
+def split_data(data_path, ratio=0.9):
+    train_names = glob.glob(data_path + 'real_A/*')
+    names = [train_names[i].split('/')[-1] for i in range(len(train_names))]
+    indexes = np.random.permutation(len(names))
+    limit = ratio * len(names)
+    train = []
+    test = []
+    for i in range(len(names)):
+        if i < limit:
+            train.append(names[indexes[i]])
+        else:
+            test.append(names[indexes[i]])
+    file_names = {"train": train, "test": test}
+    pickle.dump(file_names, open("train_test.p", "wb" ))
+    return file_names
