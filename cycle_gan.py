@@ -72,8 +72,8 @@ class CycleGAN:
         self.new_B = self.GenA(self.fake_A).to(self.device)
 
     def backward_d(self, netD, real, fake):
-        true = Variable(Tensor(np.ones((real.size(0), 1))), requires_grad=False)
-        false = Variable(Tensor(np.zeros((real.size(0), 1))), requires_grad=False)
+        true = Variable(Tensor(np.ones((real.size(0), 1))), requires_grad=False).to(self.device)
+        false = Variable(Tensor(np.zeros((real.size(0), 1))), requires_grad=False).to(self.device)
 
         predict_real = netD(real)
         loss_d_real = self.criterionGAN(predict_real, true)
@@ -87,7 +87,7 @@ class CycleGAN:
         return loss_d
 
     def backward_g(self):
-        valid = Variable(Tensor(np.ones((self.real_A.size(0), 1))), requires_grad=False)
+        valid = Variable(Tensor(np.ones((self.real_A.size(0), 1))), requires_grad=False).to(self.device)
         self.loss_genA = self.criterionGAN(self.DisA(self.fake_B), valid)
         self.loss_genB = self.criterionGAN(self.DisB(self.fake_A), valid)
 
