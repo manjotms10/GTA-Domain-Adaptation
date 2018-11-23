@@ -1,3 +1,5 @@
+from math import ceil
+
 import torch
 from torch import Tensor
 from torch.autograd import Variable
@@ -22,13 +24,13 @@ def train_cycle_gan():
     ensure_dir(models_prefix)
     ensure_dir(images_prefix)
 
-    cycle_gan = CycleGAN(device, models_prefix, opt["lr"], opt["b1"], train=True)
+    cycle_gan = CycleGAN(device, models_prefix, opt["lr"], opt["b1"],
+                         train=True)
     data = DataLoader(data_root=data_root,
                       image_size=(opt['img_height'], opt['img_width']),
-                      batch_size=opt['batch_size'],
-                      iteration=cycle_gan.epoch_tracker.iter)
+                      batch_size=opt['batch_size'])
 
-    total_batches = total_images // opt['batch_size']
+    total_batches = int(ceil(total_images / opt['batch_size']))
 
     for epoch in range(cycle_gan.epoch_tracker.epoch, opt['n_epochs']):
         for iteration in range(total_batches):
@@ -37,7 +39,7 @@ def train_cycle_gan():
                         iteration < cycle_gan.epoch_tracker.iter):
                 continue
 
-            y, x = next(data.data_generator())
+            y, x = next(data.data_generator(iteration))
 
             real_A = Variable(x.type(Tensor))
             real_B = Variable(y.type(Tensor))
@@ -45,12 +47,16 @@ def train_cycle_gan():
             cycle_gan.set_input(real_A, real_B)
             cycle_gan.train()
 
-            message = ("\r[Epoch {}/{}] [Batch {}/{}] [DA:{}, DB:{}] [GA:{}, GB:{}, cycleA:{}, cycleB:{}, G:{}]"
-                .format(epoch, opt["n_epochs"], iteration, total_batches,
-                        cycle_gan.loss_disA.item(), cycle_gan.loss_disB.item(),
-                        cycle_gan.loss_genA.item(), cycle_gan.loss_genB.item(),
-                        cycle_gan.loss_cycle_A.item(), cycle_gan.loss_cycle_B.item(),
-                        cycle_gan.loss_G))
+            message = (
+                "\r[Epoch {}/{}] [Batch {}/{}] [DA:{}, DB:{}] [GA:{}, GB:{}, cycleA:{}, cycleB:{}, G:{}]"
+                    .format(epoch, opt["n_epochs"], iteration, total_batches,
+                            cycle_gan.loss_disA.item(),
+                            cycle_gan.loss_disB.item(),
+                            cycle_gan.loss_genA.item(),
+                            cycle_gan.loss_genB.item(),
+                            cycle_gan.loss_cycle_A.item(),
+                            cycle_gan.loss_cycle_B.item(),
+                            cycle_gan.loss_G))
             print(message)
             logger.info(message)
 

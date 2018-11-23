@@ -8,8 +8,7 @@ from matplotlib import pyplot as plt
 
 
 class DataLoader:
-    def __init__(self, data_root, image_size, batch_size, paired=True,
-                 iteration=0):
+    def __init__(self, data_root, image_size, batch_size, paired=True):
         '''
         Parameters:
 
@@ -27,7 +26,6 @@ class DataLoader:
                 torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
             ])
         self.paired = paired
-        self.iteration = iteration
 
     def image_loader(self, image_name):
         """load image, returns cuda tensor"""
@@ -51,30 +49,20 @@ class DataLoader:
         plt.figure(figsize=(10,2))
         plt.imshow(np.transpose(npimg, (1, 2, 0)), aspect='auto')
 
-    def data_generator(self):
+    def data_generator(self, iteration):
         root = self.data_path
         batch_size = self.batch_size
 
         images_dir = root + 'real_A/'
         labels_dir = root + 'fake_B/'
 
-        x_indexes = np.random.permutation(len(self.names))
-        y_indexes = np.random.permutation(len(self.names))
-        i = self.iteration
-
         while True:
             x, y = [], []
-            x_idx = x_indexes[i*batch_size:(i+1)*batch_size]
+            start = iteration * batch_size
+            end = min((iteration + 1) * batch_size, len(self.names))
 
-            if self.paired:
-                y_idx = x_idx
-            else:
-                y_idx = y_indexes[i*batch_size:(i+1)*batch_size]
-
-            i += 1
-
-            for j in range(len(x_idx)):
-                x.append(self.image_loader(images_dir + self.names[x_idx[j]]))
-                y.append(self.image_loader(labels_dir + self.names[y_idx[j]]))
+            for i in range(start, end):
+                x.append(self.image_loader(images_dir + self.names[i]))
+                y.append(self.image_loader(labels_dir + self.names[i]))
 
             yield torch.stack(x), torch.stack(y)
