@@ -131,10 +131,18 @@ class CycleGAN:
         img_sample = torch.cat((self.real_A.data, self.fake_A.data, self.real_B.data, self.fake_B.data), -2)
         save_image(img_sample, path + "{}_{}.png".format(epoch, iteration), nrow=5, normalize=True)
 
-        torch.save(self.GenA.module.cpu().state_dict(), self.file_prefix + "generator_a.pth")
-        torch.save(self.GenB.module.cpu().state_dict(), self.file_prefix + "generator_b.pth")
-        torch.save(self.DisA.module.cpu().state_dict(), self.file_prefix + "discriminator_a.pth")
-        torch.save(self.DisB.module.cpu().state_dict(), self.file_prefix + "discriminator_b.pth")
+        nets = {self.GenA:self.gen_a_file,
+                self.GenB:self.gen_b_file,
+                self.DisA:self.dis_a_file,
+                self.DisB:self.dis_b_file}
+
+        for net, file in nets.items():
+            if torch.cuda.is_available():
+                torch.save(net.module.cpu().state_dict(), file)
+                net.to(self.device)
+            else:
+                torch.save(net.cpu().state_dict(), file)
+
         self.epoch_tracker.write(epoch, iteration)
 
     @staticmethod
