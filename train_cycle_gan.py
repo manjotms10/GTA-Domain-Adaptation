@@ -28,7 +28,7 @@ def train_cycle_gan():
     cycle_gan = CycleGAN(device, models_prefix, opt["lr"], opt["b1"], train=True)
     total_batches = total_images // opt['batch_size']
 
-    for epoch in range(opt['n_epochs']):
+    for epoch in range(cycle_gan.epoch_tracker.epoch, opt['n_epochs']):
         for iteration in range(total_batches):
 
             y, x = next(data.data_generator())

@@ -129,7 +129,7 @@ class CycleGAN:
 
     def save_progress(self, path, epoch, iteration):
         img_sample = torch.cat((self.real_A.data, self.fake_A.data, self.real_B.data, self.fake_B.data), -2)
-        save_image(img_sample, path + "{}_{}.png".format(epoch, iteration), nrow=5, normalize=True)
+        save_image(img_sample, path + "{}_{}.png".format(epoch, iteration), nrow=4, normalize=True)
 
         nets = {self.GenA:self.gen_a_file,
                 self.GenB:self.gen_b_file,
