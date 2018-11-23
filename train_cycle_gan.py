@@ -18,24 +18,26 @@ device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
 def train_cycle_gan():
     opt = get_opts()
-    data = DataLoader(data_root=data_root,
-                      image_size=(opt['img_height'], opt['img_width']),
-                      batch_size=opt['batch_size'])
 
     ensure_dir(models_prefix)
     ensure_dir(images_prefix)
 
     cycle_gan = CycleGAN(device, models_prefix, opt["lr"], opt["b1"], train=True)
+    data = DataLoader(data_root=data_root,
+                      image_size=(opt['img_height'], opt['img_width']),
+                      batch_size=opt['batch_size'],
+                      iteration=cycle_gan.epoch_tracker.iter)
+
     total_batches = total_images // opt['batch_size']
 
     for epoch in range(cycle_gan.epoch_tracker.epoch, opt['n_epochs']):
         for iteration in range(total_batches):
 
-            y, x = next(data.data_generator())
-
             if (epoch == cycle_gan.epoch_tracker.epoch and
                         iteration < cycle_gan.epoch_tracker.iter):
                 continue
+
+            y, x = next(data.data_generator())
 
             real_A = Variable(x.type(Tensor))
             real_B = Variable(y.type(Tensor))

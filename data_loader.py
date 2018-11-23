@@ -8,7 +8,8 @@ from matplotlib import pyplot as plt
 
 
 class DataLoader:
-    def __init__(self, data_root, image_size, batch_size, paired=True):
+    def __init__(self, data_root, image_size, batch_size, paired=True,
+                 iteration=0):
         '''
         Parameters:
 
@@ -26,6 +27,7 @@ class DataLoader:
                 torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
             ])
         self.paired = paired
+        self.iteration = iteration
 
     def image_loader(self, image_name):
         """load image, returns cuda tensor"""
@@ -46,7 +48,7 @@ class DataLoader:
     def imshow(self, img):
         img = img / 2 + 0.5     # unnormalize
         npimg = img.cpu().detach().numpy()
-        plt.figure(figsize = (10,2))
+        plt.figure(figsize=(10,2))
         plt.imshow(np.transpose(npimg, (1, 2, 0)), aspect='auto')
 
     def data_generator(self):
@@ -58,7 +60,7 @@ class DataLoader:
 
         x_indexes = np.random.permutation(len(self.names))
         y_indexes = np.random.permutation(len(self.names))
-        i = 0
+        i = self.iteration * batch_size
 
         while True:
             x, y = [], []
