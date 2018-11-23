@@ -60,7 +60,7 @@ class DataLoader:
 
         x_indexes = np.random.permutation(len(self.names))
         y_indexes = np.random.permutation(len(self.names))
-        i = self.iteration * batch_size
+        i = self.iteration
 
         while True:
             x, y = [], []
