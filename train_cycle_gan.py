@@ -14,7 +14,6 @@ data_root = "./gta/"
 models_prefix = project_root + "saved_models/"
 images_prefix = project_root + "saved_images/"
 
-total_images = 23418
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
 
@@ -29,6 +28,9 @@ def train_cycle_gan():
     data = DataLoader(data_root=data_root,
                       image_size=(opt['img_height'], opt['img_width']),
                       batch_size=opt['batch_size'])
+
+    total_images = len(data.names)
+    print("Total Training Images", total_images)
 
     total_batches = int(ceil(total_images / opt['batch_size']))
 
