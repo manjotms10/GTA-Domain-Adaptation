@@ -12,11 +12,13 @@ from networks import CycleGanDiscriminator, CycleGanResnetGenerator
 
 class CycleGAN:
 
-    def __init__(self, device, file_prefix, learning_rate, beta1, train=False):
+    def __init__(self, device, file_prefix, learning_rate, beta1,
+                 train=False, semi_supervised=False):
         self.lambda_A = 10.0  # weight for cycle-loss A->B->A
         self.lambda_B = 10.0  # weight for cycle-loss B->A->B
 
         self.is_train = train
+        self.is_semi_supervised = semi_supervised
         self.device = device
         self.file_prefix = file_prefix
 
@@ -47,7 +49,7 @@ class CycleGAN:
             # define loss functions
             self.criterionGAN = nn.BCELoss()
             self.criterionCycle = nn.L1Loss()
-            self.criterionIdt = nn.L1Loss()
+            self.criterionSupervised = nn.L1Loss()
 
             # initialize optimizers
             self.optimizer_g = torch.optim.Adam(itertools.chain(self.GenA.parameters(), self.GenB.parameters()),
@@ -58,7 +60,7 @@ class CycleGAN:
 
             self.loss_disA = self.loss_disB = self.loss_cycle_A = 0
             self.loss_cycle_B = self.loss_genA = self.loss_genB = 0
-            self.loss_G = 0
+            self.supervised_A = self.supervised_B = self.loss_G = 0
 
     def set_input(self, real_A, real_B):
         self.real_A = real_A.to(self.device)
@@ -96,8 +98,12 @@ class CycleGAN:
         # Backward cycle loss
         self.loss_cycle_B = self.criterionCycle(self.new_B, self.real_B) * self.lambda_B
 
+        self.supervised_A = self.criterionSupervised(self.fake_B[:2,:,:,:], self.real_B[:2,:,:,:]) * self.lambda_A
+        self.supervised_B = self.criterionSupervised(self.fake_A[:2,:,:,:], self.real_A[:2,:,:,:]) * self.lambda_B
+
         # combined loss
-        self.loss_G = self.loss_genA + self.loss_genB + self.loss_cycle_A + self.loss_cycle_B
+        self.loss_G = (self.loss_genA + self.loss_genB + self.loss_cycle_A + self.loss_cycle_B
+                      + self.supervised_A + self.supervised_B)
 
         self.loss_G.backward()
 
