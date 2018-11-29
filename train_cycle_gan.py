@@ -64,6 +64,7 @@ def train_cycle_gan():
 
             if iteration % opt['sample_interval'] == 0:
                 cycle_gan.save_progress(images_prefix, epoch, iteration)
+    cycle_gan.save_progress(images_prefix, opt['n_epochs'], total_batches)
 
 
 if __name__ == "__main__":
