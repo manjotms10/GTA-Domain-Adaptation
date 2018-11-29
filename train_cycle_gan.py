@@ -17,14 +17,14 @@ images_prefix = project_root + "saved_images/"
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
 
-def train_cycle_gan():
+def train_cycle_gan(semi_supervised=False):
     opt = get_opts()
 
     ensure_dir(models_prefix)
     ensure_dir(images_prefix)
 
     cycle_gan = CycleGAN(device, models_prefix, opt["lr"], opt["b1"],
-                         train=True)
+                         train=True, semi_supervised=semi_supervised)
     data = DataLoader(data_root=data_root,
                       image_size=(opt['img_height'], opt['img_width']),
                       batch_size=opt['batch_size'])
@@ -64,7 +64,7 @@ def train_cycle_gan():
 
             if iteration % opt['sample_interval'] == 0:
                 cycle_gan.save_progress(images_prefix, epoch, iteration)
-    cycle_gan.save_progress(images_prefix, opt['n_epochs'], total_batches)
+    cycle_gan.save_progress(images_prefix, opt['n_epochs'], total_batches, save_epoch=True)
 
 
 if __name__ == "__main__":

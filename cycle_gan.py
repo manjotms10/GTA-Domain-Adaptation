@@ -98,12 +98,15 @@ class CycleGAN:
         # Backward cycle loss
         self.loss_cycle_B = self.criterionCycle(self.new_B, self.real_B) * self.lambda_B
 
-        self.supervised_A = self.criterionSupervised(self.fake_B[:2,:,:,:], self.real_B[:2,:,:,:]) * self.lambda_A
-        self.supervised_B = self.criterionSupervised(self.fake_A[:2,:,:,:], self.real_A[:2,:,:,:]) * self.lambda_B
+        if self.is_semi_supervised:
+            self.supervised_A = self.criterionSupervised(self.fake_B[:2,:,:,:], self.real_B[:2,:,:,:]) * self.lambda_A
+            self.supervised_B = self.criterionSupervised(self.fake_A[:2,:,:,:], self.real_A[:2,:,:,:]) * self.lambda_B
 
         # combined loss
-        self.loss_G = (self.loss_genA + self.loss_genB + self.loss_cycle_A + self.loss_cycle_B
-                      + self.supervised_A + self.supervised_B)
+        self.loss_G = (self.loss_genA + self.loss_genB + self.loss_cycle_A + self.loss_cycle_B)
+
+        if self.is_semi_supervised:
+            self.loss_G += self.supervised_A + self.supervised_B
 
         self.loss_G.backward()
 
@@ -133,7 +136,7 @@ class CycleGAN:
         with torch.no_grad():
             self.forward()
 
-    def save_progress(self, path, epoch, iteration):
+    def save_progress(self, path, epoch, iteration, save_epoch=False):
         img_sample = torch.cat((self.real_A.data, self.fake_A.data, self.real_B.data, self.fake_B.data), -2)
         save_image(img_sample, path + "{}_{}.png".format(epoch, iteration), nrow=4, normalize=True)
 
@@ -143,6 +146,8 @@ class CycleGAN:
                 self.DisB:self.dis_b_file}
 
         for net, file in nets.items():
+            if save_epoch:
+                file = "{}_{}".format(file, epoch)
             if torch.cuda.is_available():
                 torch.save(net.module.cpu().state_dict(), file)
                 net.to(self.device)
