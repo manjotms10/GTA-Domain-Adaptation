@@ -22,7 +22,7 @@ def weights_init_normal(m):
 
 def get_opts():
     opt = {
-        "n_epochs": 100,
+        "n_epochs": 25,
         "dataset_name": 'GTA',
         "batch_size": 8,
         "lr": 0.0002,
