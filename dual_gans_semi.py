@@ -11,6 +11,7 @@ import os
 import random
 import glob
 import itertools
+import pickle
 from PIL import Image
 import torch
 import torchvision
@@ -86,8 +87,8 @@ class DataLoader:
         self.data_path = data_root
         self.image_size = image_size
         self.batch_size = batch_size
-        self.train_names = glob.glob(self.data_path + 'real_A/*')
-        self.names = [self.train_names[i].split('/')[-1] for i in range(len(self.train_names))]
+        self.train_test = pickle.load(open( "train_test.p", "rb"))
+        self.names = self.train_test['train']
         self.data_transforms = torchvision.transforms.Compose([
                 torchvision.transforms.Resize(image_size),
                 torchvision.transforms.CenterCrop(image_size),
@@ -99,7 +100,7 @@ class DataLoader:
         """load image, returns cuda tensor"""
         image = Image.open(image_name)
         image = self.data_transforms(image).float()
-        image = torch.autograd.Variable(image, requires_grad=True)
+        image = torch.autograd.Variable(image, requires_grad=False)
         image = image.unsqueeze(0)  # this is for VGG, may not be needed for ResNet
         return image[0].to(self.device)  # assumes that you're using GPU
 
@@ -427,15 +428,17 @@ for epoch in range(e_tracker.epoch, num_epochs):
         fake_b_gen = gen_a(fake_a)
         pred_out_dis_b = dis_b(fake_b_gen).view(-1, 1)
         err_gen_a_pred = criterion(pred_out_dis_b, valid)
-        err_gen_a_pixel = criterion_pixelwise(fake_b[:3, :, :, :], real_b[:3, :, :, :]) + criterion_pixelwise(fake_b_gen[:3, :, :, :], real_b[:3, :, :, :])
-        err_gen_a = err_gen_a_pred + err_gen_a_pixel
+        err_gen_a_pixel_supervised = criterion_pixelwise(fake_b[:3, :, :, :], real_b[:3, :, :, :])
+        err_gen_a_pixel_recon = criterion_pixelwise(fake_b_gen, real_b)
+        err_gen_a = err_gen_a_pred + err_gen_a_pixel_supervised + err_gen_a_pixel_recon
         
         # Train and update Generator B based on Discriminator A's prediction
         fake_a_gen = gen_b(fake_b)
         pred_out_dis_a = dis_a(fake_a_gen).view(-1, 1)
         err_gen_b_pred = criterion(pred_out_dis_a, valid)
-        err_gen_b_pixel = criterion_pixelwise(fake_a[:3, :, :, :], real_a[:3, :, :, :]) + criterion_pixelwise(fake_a_gen[:3, :, :, :], real_a[:3, :, :, :])
-        err_gen_b = err_gen_b_pred + err_gen_b_pixel
+        err_gen_b_pixel_supervised = criterion_pixelwise(fake_a[:3, :, :, :], real_a[:3, :, :, :]) 
+        err_gen_b_pixel_recon = criterion_pixelwise(fake_a_gen, real_a)
+        err_gen_b = err_gen_b_pred + err_gen_b_pixel_supervised + err_gen_b_pixel_recon
         
         # Update params of Generator A and B
         err_gen = err_gen_a + err_gen_b
