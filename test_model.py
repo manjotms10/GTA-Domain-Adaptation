@@ -1,5 +1,3 @@
-from math import ceil
-
 import torch
 from torch import Tensor
 from torch.autograd import Variable
@@ -33,11 +31,11 @@ def test_cycle_gan():
 
     loss_A = 0.0
     loss_B = 0.0
+    name_loss_A = []
+    name_loss_B = []
 
     for i in range(total_images):
-
         print(i, "/", total_images)
-
         y, x = next(data.data_generator(i))
         name = data.names[i]
 
@@ -49,10 +47,17 @@ def test_cycle_gan():
         cycle_gan.save_image(images_prefix, name)
         loss_A += cycle_gan.test_A
         loss_B += cycle_gan.test_B
+        name_loss_A.append((cycle_gan.test_A, name))
+        name_loss_B.append((cycle_gan.test_B, name))
 
     info = "Average Loss A:{} B :{}".format(loss_A/(1.0 * total_images), loss_B/(1.0 * total_images))
     print(info)
     logger.info(info)
+    name_loss_A = sorted(name_loss_A)
+    name_loss_B = sorted(name_loss_B)
+    print("top 10 images")
+    print(name_loss_A[:10])
+    print(name_loss_B[:10])
 
 
 if __name__ == "__main__":
