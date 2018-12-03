@@ -61,6 +61,8 @@ class CycleGAN:
             self.loss_disA = self.loss_disB = self.loss_cycle_A = 0
             self.loss_cycle_B = self.loss_genA = self.loss_genB = 0
             self.supervised_A = self.supervised_B = self.loss_G = 0
+        else:
+            self.test_A = self.test_B = 0
 
     def set_input(self, real_A, real_B):
         self.real_A = real_A.to(self.device)
@@ -135,6 +137,9 @@ class CycleGAN:
     def test(self):
         with torch.no_grad():
             self.forward()
+        self.test_A = self.criterionSupervised(self.fake_B, self.real_B)
+        self.test_B = self.criterionSupervised(self.fake_A, self.real_A)
+
 
     def save_progress(self, path, epoch, iteration, save_epoch=False):
         img_sample = torch.cat((self.real_A.data, self.fake_A.data, self.real_B.data, self.fake_B.data), -2)
@@ -155,6 +160,9 @@ class CycleGAN:
                 torch.save(net.cpu().state_dict(), file)
 
         self.epoch_tracker.write(epoch, iteration)
+
+    def save_image(self, path, name):
+        save_image(img_sample, path + "{}_{}.png".format(epoch, iteration), nrow=4, normalize=True)
 
     @staticmethod
     def set_requires_grad(nets, requires_grad=False):

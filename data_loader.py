@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 
 
 class DataLoader:
-    def __init__(self, data_root, image_size, batch_size, paired=True):
+    def __init__(self, data_root, image_size, batch_size, paired=True, train=True):
         '''
         Parameters:
 
@@ -18,7 +18,12 @@ class DataLoader:
         self.image_size = image_size
         self.batch_size = batch_size
         self.train_test = pickle.load(open( "train_test.p", "rb"))
-        self.names = self.train_test['train']
+
+        if train:
+            self.names = self.train_test['train']
+        else:
+            self.names = self.train_test['test']
+
         self.data_transforms = torchvision.transforms.Compose([
                 torchvision.transforms.Resize(image_size),
                 torchvision.transforms.CenterCrop(image_size),
