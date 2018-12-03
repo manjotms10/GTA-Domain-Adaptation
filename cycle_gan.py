@@ -62,6 +62,7 @@ class CycleGAN:
             self.loss_cycle_B = self.loss_genA = self.loss_genB = 0
             self.supervised_A = self.supervised_B = self.loss_G = 0
         else:
+            self.pixelLoss = nn.L1Loss()
             self.test_A = self.test_B = 0
 
     def set_input(self, real_A, real_B):
@@ -137,8 +138,8 @@ class CycleGAN:
     def test(self):
         with torch.no_grad():
             self.forward()
-        self.test_A = self.criterionSupervised(self.fake_B, self.real_B)
-        self.test_B = self.criterionSupervised(self.fake_A, self.real_A)
+            self.test_A = self.pixelLoss(self.fake_B, self.real_B)
+            self.test_B = self.pixelLoss(self.fake_A, self.real_A)
 
 
     def save_progress(self, path, epoch, iteration, save_epoch=False):

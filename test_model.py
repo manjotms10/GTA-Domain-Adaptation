@@ -34,10 +34,10 @@ def test_cycle_gan():
     loss_A = 0.0
     loss_B = 0.0
 
-    for i in total_images:
+    for i in range(total_images):
 
         y, x = next(data.data_generator(i))
-        name = data.name[i]
+        name = data.names[i]
 
         real_A = Variable(x.type(Tensor))
         real_B = Variable(y.type(Tensor))
