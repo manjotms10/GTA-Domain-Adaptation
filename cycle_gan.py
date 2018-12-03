@@ -163,8 +163,8 @@ class CycleGAN:
         self.epoch_tracker.write(epoch, iteration)
 
     def save_image(self, path, name):
-        save_image(self.fake_A.data, path + "{}_fakeA.png".format(name))
-        save_image(self.fake_B.data, path + "{}_fakeB.png".format(name))
+        save_image(self.fake_A.data, path + "{}_fakeA.png".format(name), normalize=True)
+        save_image(self.fake_B.data, path + "{}_fakeB.png".format(name), normalize=True)
 
     @staticmethod
     def set_requires_grad(nets, requires_grad=False):

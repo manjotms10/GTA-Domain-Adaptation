@@ -36,6 +36,8 @@ def test_cycle_gan():
 
     for i in range(total_images):
 
+        print(i, "/", total_images)
+
         y, x = next(data.data_generator(i))
         name = data.names[i]
 
