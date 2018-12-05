@@ -27,8 +27,8 @@ class DualGANs:
 
         self.epoch_tracker = EpochTracker(file_prefix + "epoch.txt")
 
-        self.gen_a_file = file_prefix + self.architecture + 'generator_a_9.pth'
-        self.gen_b_file = file_prefix + self.architecture + 'generator_b_9.pth'
+        self.gen_a_file = file_prefix + self.architecture + 'generator_a.pth'
+        self.gen_b_file = file_prefix + self.architecture + 'generator_b.pth'
         self.dis_a_file = file_prefix + self.architecture + 'discriminator_a.pth'
         self.dis_b_file = file_prefix + self.architecture + 'discriminator_b.pth'
 

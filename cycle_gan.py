@@ -14,6 +14,11 @@ class CycleGAN:
 
     def __init__(self, device, file_prefix, learning_rate, beta1,
                  train=False, semi_supervised=False):
+        if semi_supervised is True:
+            self.architecture = 'cycle_gan_semi_'
+        else:
+            self.architecture = 'cycle_gan_un_'
+            
         self.lambda_A = 10.0  # weight for cycle-loss A->B->A
         self.lambda_B = 10.0  # weight for cycle-loss B->A->B
 
@@ -24,10 +29,10 @@ class CycleGAN:
 
         self.epoch_tracker = EpochTracker(file_prefix + "epoch.txt")
 
-        self.gen_a_file = file_prefix + 'generator_a.pth'
-        self.gen_b_file = file_prefix + 'generator_b.pth'
-        self.dis_a_file = file_prefix + 'discriminator_a.pth'
-        self.dis_b_file = file_prefix + 'discriminator_b.pth'
+        self.gen_a_file = file_prefix + self.architecture + 'generator_a.pth'
+        self.gen_b_file = file_prefix + self.architecture + 'generator_b.pth'
+        self.dis_a_file = file_prefix + self.architecture + 'discriminator_a.pth'
+        self.dis_b_file = file_prefix + self.architecture + 'discriminator_b.pth'
 
         if self.epoch_tracker.file_exists:
             self.GenA = self.init_net(CycleGanResnetGenerator(), self.gen_a_file)
@@ -143,6 +148,8 @@ class CycleGAN:
 
 
     def save_progress(self, path, epoch, iteration, save_epoch=False):
+        path +=  self.architecture 
+        
         img_sample = torch.cat((self.real_A.data, self.fake_A.data, self.real_B.data, self.fake_B.data), -2)
         save_image(img_sample, path + "{}_{}.png".format(epoch, iteration), nrow=4, normalize=True)
 

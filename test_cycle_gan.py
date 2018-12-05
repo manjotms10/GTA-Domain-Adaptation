@@ -9,7 +9,7 @@ from utils import ensure_dir, get_opts
 
 project_root = "./"
 data_root = "./gta/"
-models_prefix = project_root + "saved_models/"
+models_prefix = project_root + "saved_models/test_"
 images_prefix = project_root + "saved_test_images/"
 
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
