@@ -1,0 +1,104 @@
+Unsupervised Dual Gans -
+Average Loss A:0.06855792552232742 B :0.0971909835934639
+top 10 images
+[(tensor(1.00000e-02 *
+       9.0385, device='cuda:0'), '22723.png'), (tensor(1.00000e-02 *
+       9.0625, device='cuda:0'), '14068.png'), (tensor(1.00000e-02 *
+       9.2038, device='cuda:0'), '18340.png'), (tensor(1.00000e-02 *
+       9.2100, device='cuda:0'), '22326.png'), (tensor(1.00000e-02 *
+       9.2142, device='cuda:0'), '00734.png'), (tensor(1.00000e-02 *
+       9.4270, device='cuda:0'), '17611.png'), (tensor(1.00000e-02 *
+       9.5010, device='cuda:0'), '19700.png'), (tensor(1.00000e-02 *
+       9.5433, device='cuda:0'), '09404.png'), (tensor(1.00000e-02 *
+       9.5685, device='cuda:0'), '02007.png'), (tensor(1.00000e-02 *
+       9.5966, device='cuda:0'), '22562.png')]
+[(tensor(0.1370, device='cuda:0'), '14541.png'), (tensor(0.1394, device='cuda:0'), '22326.png'), (tensor(0.1440, device='cuda:0'), '13684.png'), (tensor(0.1442, device='cuda:0'), '23859.png'), (tensor(0.1479, device='cuda:0'), '03594.png'), (tensor(0.1481, device='cuda:0'), '01115.png'), (tensor(0.1489, device='cuda:0'), '20484.png'), (tensor(0.1493, device='cuda:0'), '00734.png'), (tensor(0.1495, device='cuda:0'), '18340.png'), (tensor(0.1497, device='cuda:0'), '17518.png')]
+
+Mean IOU for model: dual_gans_un is 0.7244668579101563
+
+
+Semisupervised Dual Gans -
+Average Loss A:0.03935158997774124 B :0.03233562782406807
+top 10 images
+[(tensor(1.00000e-02 *
+       4.1328, device='cuda:0'), '13280.png'), (tensor(1.00000e-02 *
+       4.3226, device='cuda:0'), '00771.png'), (tensor(1.00000e-02 *
+       4.3463, device='cuda:0'), '12462.png'), (tensor(1.00000e-02 *
+       4.4140, device='cuda:0'), '01101.png'), (tensor(1.00000e-02 *
+       4.4660, device='cuda:0'), '07606.png'), (tensor(1.00000e-02 *
+       4.4753, device='cuda:0'), '19779.png'), (tensor(1.00000e-02 *
+       4.5400, device='cuda:0'), '08118.png'), (tensor(1.00000e-02 *
+       4.5414, device='cuda:0'), '16691.png'), (tensor(1.00000e-02 *
+       4.5765, device='cuda:0'), '12768.png'), (tensor(1.00000e-02 *
+       4.5889, device='cuda:0'), '16951.png')]
+[(tensor(1.00000e-02 *
+       3.0555, device='cuda:0'), '07995.png'), (tensor(1.00000e-02 *
+       3.0964, device='cuda:0'), '19725.png'), (tensor(1.00000e-02 *
+       3.1590, device='cuda:0'), '07085.png'), (tensor(1.00000e-02 *
+       3.1824, device='cuda:0'), '03199.png'), (tensor(1.00000e-02 *
+       3.2469, device='cuda:0'), '04416.png'), (tensor(1.00000e-02 *
+       3.2610, device='cuda:0'), '02725.png'), (tensor(1.00000e-02 *
+       3.2614, device='cuda:0'), '24266.png'), (tensor(1.00000e-02 *
+       3.2881, device='cuda:0'), '18104.png'), (tensor(1.00000e-02 *
+       3.3390, device='cuda:0'), '00856.png'), (tensor(1.00000e-02 *
+       3.3520, device='cuda:0'), '02841.png')]
+
+Mean IOU for model: dual_gans_semi is 0.7441629028320312
+
+
+Unsupervised Cycle Gan -
+Average Loss A:0.09532295912504196 B :0.07448925077915192
+top 10 images
+[(tensor(1.00000e-02 *
+       5.0039, device='cuda:0'), '21874.png'), (tensor(1.00000e-02 *
+       5.0090, device='cuda:0'), '03255.png'), (tensor(1.00000e-02 *
+       5.1651, device='cuda:0'), '19339.png'), (tensor(1.00000e-02 *
+       5.1881, device='cuda:0'), '24124.png'), (tensor(1.00000e-02 *
+       5.2447, device='cuda:0'), '01408.png'), (tensor(1.00000e-02 *
+       5.3868, device='cuda:0'), '17955.png'), (tensor(1.00000e-02 *
+       5.3916, device='cuda:0'), '14784.png'), (tensor(1.00000e-02 *
+       5.4274, device='cuda:0'), '13900.png'), (tensor(1.00000e-02 *
+       5.4456, device='cuda:0'), '19662.png'), (tensor(1.00000e-02 *
+       5.4463, device='cuda:0'), '16216.png')]
+[(tensor(1.00000e-02 *
+       4.2798, device='cuda:0'), '22160.png'), (tensor(1.00000e-02 *
+       4.2938, device='cuda:0'), '23148.png'), (tensor(1.00000e-02 *
+       4.3155, device='cuda:0'), '11078.png'), (tensor(1.00000e-02 *
+       4.3882, device='cuda:0'), '03752.png'), (tensor(1.00000e-02 *
+       4.4164, device='cuda:0'), '04691.png'), (tensor(1.00000e-02 *
+       4.4428, device='cuda:0'), '16966.png'), (tensor(1.00000e-02 *
+       4.5033, device='cuda:0'), '02973.png'), (tensor(1.00000e-02 *
+       4.5159, device='cuda:0'), '10095.png'), (tensor(1.00000e-02 *
+       4.5238, device='cuda:0'), '21566.png'), (tensor(1.00000e-02 *
+       4.5346, device='cuda:0'), '17383.png')]
+
+Mean IOU for model: cycle_gan_un is 0.7676696014404297
+
+
+Semisupervised Cycle gan -
+Average Loss A:0.09358067810535431 B :0.06895963847637177
+top 10 images
+[(tensor(1.00000e-02 *
+       4.5682, device='cuda:0'), '07021.png'), (tensor(1.00000e-02 *
+       4.6131, device='cuda:0'), '07532.png'), (tensor(1.00000e-02 *
+       4.7467, device='cuda:0'), '11737.png'), (tensor(1.00000e-02 *
+       4.7591, device='cuda:0'), '06617.png'), (tensor(1.00000e-02 *
+       4.8257, device='cuda:0'), '10231.png'), (tensor(1.00000e-02 *
+       4.8802, device='cuda:0'), '04072.png'), (tensor(1.00000e-02 *
+       4.8945, device='cuda:0'), '19339.png'), (tensor(1.00000e-02 *
+       5.0117, device='cuda:0'), '12103.png'), (tensor(1.00000e-02 *
+       5.0242, device='cuda:0'), '14983.png'), (tensor(1.00000e-02 *
+       5.0255, device='cuda:0'), '08647.png')]
+[(tensor(1.00000e-02 *
+       3.8620, device='cuda:0'), '19722.png'), (tensor(1.00000e-02 *
+       3.9470, device='cuda:0'), '02582.png'), (tensor(1.00000e-02 *
+       3.9508, device='cuda:0'), '19279.png'), (tensor(1.00000e-02 *
+       3.9875, device='cuda:0'), '20122.png'), (tensor(1.00000e-02 *
+       3.9917, device='cuda:0'), '03752.png'), (tensor(1.00000e-02 *
+       4.0486, device='cuda:0'), '04072.png'), (tensor(1.00000e-02 *
+       4.0553, device='cuda:0'), '21900.png'), (tensor(1.00000e-02 *
+       4.0579, device='cuda:0'), '15497.png'), (tensor(1.00000e-02 *
+       4.0635, device='cuda:0'), '22596.png'), (tensor(1.00000e-02 *
+       4.0696, device='cuda:0'), '20271.png')]
+       
+Mean IOU for model: cycle_gan_semi is 0.7668037414550781

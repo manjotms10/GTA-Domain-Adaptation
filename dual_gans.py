@@ -15,6 +15,8 @@ class DualGANs:
     def __init__(self, device, file_prefix, learning_rate=0.0005, alpha=0.9,
                  train=False, semi_supervised=False):
         
+        print("Starting Dual Gans with Train = {} and Semi Supervised = {}".format(train, semi_supervised))
+        
         if semi_supervised is True:
             self.architecture = 'dual_gans_semi_'
         else:
@@ -32,7 +34,7 @@ class DualGANs:
         self.dis_a_file = file_prefix + self.architecture + 'discriminator_a.pth'
         self.dis_b_file = file_prefix + self.architecture + 'discriminator_b.pth'
 
-        if self.epoch_tracker.file_exists:
+        if self.epoch_tracker.file_exists or not self.is_train:
             self.GenA = self.init_net(DualGansGenerator(), self.gen_a_file)
             self.GenB = self.init_net(DualGansGenerator(), self.gen_b_file)
         else:
@@ -167,8 +169,8 @@ class DualGANs:
         self.epoch_tracker.write(epoch, iteration)
 
     def save_image(self, path, name):
-        save_image(self.fake_A.data, path + "{}_fakeA.png".format(name), normalize=True)
-        save_image(self.fake_B.data, path + "{}_fakeB.png".format(name), normalize=True)
+        save_image(self.real_A.data, path + "{}_fakeA.png".format(name), normalize=True)
+        save_image(self.real_B.data, path + "{}_fakeB.png".format(name), normalize=True)
 
     @staticmethod
     def set_requires_grad(nets, requires_grad=False):

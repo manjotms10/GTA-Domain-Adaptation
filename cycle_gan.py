@@ -14,7 +14,9 @@ class CycleGAN:
 
     def __init__(self, device, file_prefix, learning_rate, beta1,
                  train=False, semi_supervised=False):
-        if semi_supervised is True:
+        print("Starting Cycle Gan with Train = {} and Semi Supervised = {}".format(train, semi_supervised))
+        
+        if semi_supervised:
             self.architecture = 'cycle_gan_semi_'
         else:
             self.architecture = 'cycle_gan_un_'
@@ -34,7 +36,7 @@ class CycleGAN:
         self.dis_a_file = file_prefix + self.architecture + 'discriminator_a.pth'
         self.dis_b_file = file_prefix + self.architecture + 'discriminator_b.pth'
 
-        if self.epoch_tracker.file_exists:
+        if self.epoch_tracker.file_exists or not self.is_train:
             self.GenA = self.init_net(CycleGanResnetGenerator(), self.gen_a_file)
             self.GenB = self.init_net(CycleGanResnetGenerator(), self.gen_b_file)
         else:

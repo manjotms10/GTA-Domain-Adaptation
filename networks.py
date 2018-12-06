@@ -8,7 +8,7 @@ class GeneratorUNet(nn.Module):
         
         # Convolution layers
         nc = 3
-        ngf = 32
+        ngf = 64
         
         # input is (nc) x 256 x 256
         self.conv1 = nn.Conv2d(nc, ngf, 4, 2, 1, bias=True)

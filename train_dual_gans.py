@@ -41,7 +41,7 @@ def train_dual_gans(semi_supervised=False):
                         iteration < dual_gans.epoch_tracker.iter):
                 continue
 
-            y, x = next(data.data_generator(iteration))
+            x, y = next(data.data_generator(iteration))
 
             real_A = Variable(x.type(Tensor))
             real_B = Variable(y.type(Tensor))

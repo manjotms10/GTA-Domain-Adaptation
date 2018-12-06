@@ -15,13 +15,14 @@ images_prefix = project_root + "saved_images/"
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
 
-def test_dual_gans():
+def test_dual_gans(semi_supervised=True):
     opt = get_opts()
 
     ensure_dir(models_prefix)
     ensure_dir(images_prefix)
     
-    dual_gans = DualGANs(device, models_prefix, opt["lr"], opt["alpha"], train=False)
+    dual_gans = DualGANs(device, models_prefix, opt["lr"], opt["alpha"], train=False, 
+                         semi_supervised=semi_supervised)
     data = DataLoader(data_root=data_root,
                       image_size=(opt['img_height'], opt['img_width']),
                       batch_size=opt["test_batch_size"], train=False)
@@ -36,7 +37,7 @@ def test_dual_gans():
 
     for i in range(total_images//opt["test_batch_size"]):
         print(i, "/", total_images//opt["test_batch_size"])
-        y, x = next(data.data_generator(i))
+        x, y = next(data.data_generator(i))
         name = data.names[i]
         real_A = Variable(x.type(Tensor))
         real_B = Variable(y.type(Tensor))
