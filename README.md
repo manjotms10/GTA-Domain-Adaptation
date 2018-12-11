@@ -1,7 +1,10 @@
 # GTA-Domain-Adaptation
 
-Hyperparameters are defined in utils.py
+We study the problem to domain adaptation between GTA and cityscapes datasets.
+Hyperparameters are defined in *params.yaml*.
+We implement two different architectures, namely DualGAN's and CycleGAN.
+Both these architectures use two Generative Adversarial Networks and use cycle-constistency to incorporate reconstruction losses.
+We use a semantic segmentation model use compare the performance of our models.
 
-To Run,
-Create a folder "gta" in directory containing this folder.
-Run using "python train.py"
+To replicate the training, run the *train.ipynb* ipython notebook.
+The demo can be run using *demo.ipynb*
