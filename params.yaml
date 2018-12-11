@@ -1,0 +1,14 @@
+b1: 0.5
+b2: 0.99
+batch_size: 64
+channels: 3
+checkpoint_interval: 1
+dataset_name: GTA
+decay_epoch: 100
+img_height: 256
+img_width: 256
+load_model: false
+lr: 0.0002
+n_cpu: 4
+n_epochs: 100
+sample_interval: 25
