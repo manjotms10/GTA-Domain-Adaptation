@@ -1,5 +1,5 @@
 import os
-
+import yaml
 import torch
 from torch.autograd import Variable
 from torchvision.utils import save_image
@@ -18,24 +18,9 @@ def weights_init_normal(m):
 
 
 def get_opts():
-    opt = {
-        "n_epochs": 100,
-        "dataset_name": 'GTA',
-        "batch_size": 64,
-        "lr": 0.0002,
-        "b1": 0.5,
-        "b2": 0.99,
-        "decay_epoch": 100,
-        "n_cpu": 4,
-        "img_height": 256,
-        "img_width": 256,
-        "channels": 3,
-        "sample_interval": 25,
-        "checkpoint_interval": 1,
-        "load_model": False
-    }
-
-    return opt
+    with open("params.yaml", 'r') as stream:
+        data_loaded = yaml.load(stream)
+        return data_loaded
 
 
 def ensure_dir(file_path):
