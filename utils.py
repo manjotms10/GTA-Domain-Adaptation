@@ -1,6 +1,9 @@
 import os
 import yaml
+import pickle
+import glob
 import torch
+import numpy as np
 from torch.autograd import Variable
 from torchvision.utils import save_image
 
@@ -23,6 +26,7 @@ def get_opts():
         return data_loaded
 
 
+
 def ensure_dir(file_path):
     directory = os.path.dirname(file_path)
     if not os.path.exists(directory):
@@ -37,3 +41,41 @@ def sample_images(data, batches_done, generator, number):
     img_sample = torch.cat((real_A.data, fake_B.data, real_B.data), -2)
     save_image(img_sample, 'saved_images/%s.png' % (number), nrow=5, normalize=True)
     return x, y
+
+
+class EpochTracker():
+    def __init__(self, in_file):
+        self.epoch = 0
+        self.iter = 0
+        self.in_file = in_file
+        self.file_exists = os.path.isfile(in_file)
+        if self.file_exists:
+            with open(in_file, 'r') as f:
+                d = f.read()
+                a, b = d.split(";")
+                self.epoch = int(a)
+                self.iter = int(b)
+
+    def write(self, epoch, iteration):
+        self.epoch = epoch
+        self.iter = iteration
+        data = "{};{}".format(self.epoch, self.iter)
+        with open(self.in_file, 'w') as f:
+            f.write(data)
+
+
+def split_data(data_path, ratio=0.9):
+    train_names = glob.glob(data_path + 'real_A/*')
+    names = [train_names[i].split('/')[-1] for i in range(len(train_names))]
+    indexes = np.random.permutation(len(names))
+    limit = ratio * len(names)
+    train = []
+    test = []
+    for i in range(len(names)):
+        if i < limit:
+            train.append(names[indexes[i]])
+        else:
+            test.append(names[indexes[i]])
+    file_names = {"train": train, "test": test}
+    pickle.dump(file_names, open("train_test.p", "wb" ))
+    return file_names

@@ -1,6 +1,6 @@
 from torch import nn
-from torch.nn import functional as F
 import torch
+
 
 class GeneratorUNet(nn.Module):
     def __init__(self):
@@ -198,3 +198,127 @@ class Discriminator(nn.Module):
         y = self.flat(y)
         y = self.out(y)
         return y
+
+
+# Defining Generator and Discriminator for CycleGANS
+
+# Idea originally from Justin Johnson's architecture.
+# https://github.com/jcjohnson/fast-neural-style/
+class CycleGanResnetGenerator(nn.Module):
+
+    def __init__(self, ngf=32, use_dropout=True):
+
+        super(CycleGanResnetGenerator, self).__init__()
+
+        self.in_channels = 3
+        self.out_channels = 3
+        self.num_resnet_blocks = 9
+
+        model = [nn.ReflectionPad2d(3),
+                 nn.Conv2d(self.in_channels, ngf, kernel_size=7, padding=0,
+                           bias=nn.InstanceNorm2d),
+                 nn.BatchNorm2d(ngf),
+                 nn.ReLU(True)]
+
+        # we down-sample for 2 layers
+        for i in range(2):
+            in_ch = 2**i * ngf
+            out_ch = 2 * in_ch
+            model += [nn.Conv2d(in_ch, out_ch, kernel_size=3, stride=2,
+                                padding=1, bias=nn.InstanceNorm2d),
+                      nn.BatchNorm2d(out_ch),
+                      nn.ReLU(True)]
+
+        # 9 Resnet Blocks
+        in_ch = 4 * ngf
+        for i in range(self.num_resnet_blocks):
+            model += [CycleGanResnetBlock(in_ch, use_dropout)]
+
+        # We up-sample for 2 layers
+        for i in range(2):
+            in_ch = 2**(2 - i) * ngf
+            out_ch = int(in_ch / 2.0)
+            model += [nn.ConvTranspose2d(in_ch, out_ch,
+                                         kernel_size=3, stride=2,
+                                         padding=1, output_padding=1,
+                                         bias=nn.InstanceNorm2d),
+                      nn.BatchNorm2d(out_ch),
+                      nn.ReLU(True)]
+
+        model += [nn.ReflectionPad2d(3)]
+        model += [nn.Conv2d(ngf, self.out_channels, kernel_size=7, padding=0)]
+        model += [nn.Tanh()]
+
+        self.model = nn.Sequential(*model)
+
+    def forward(self, input):
+        return self.model(input)
+
+
+# Resnet Module to be used in Generator
+class CycleGanResnetBlock(nn.Module):
+
+    def __init__(self, dim, use_dropout=True):
+        super(CycleGanResnetBlock, self).__init__()
+
+        conv_block = [nn.ReflectionPad2d(1),
+                      nn.Conv2d(dim, dim, kernel_size=3, padding=0,
+                                bias=nn.InstanceNorm2d),
+                      nn.BatchNorm2d(dim),
+                      nn.ReLU(True)]
+
+        if use_dropout:
+            conv_block += [nn.Dropout(0.5)]
+
+        conv_block += [nn.ReflectionPad2d(1),
+                       nn.Conv2d(dim, dim, kernel_size=3, padding=0,
+                                 bias=nn.InstanceNorm2d),
+                       nn.BatchNorm2d(dim)]
+
+        self.conv_block = nn.Sequential(*conv_block)
+
+    def forward(self, x):
+        out = x + self.conv_block(x)
+        return out
+
+
+class CycleGanDiscriminator(nn.Module):
+    def __init__(self, ndf=32, n_layers=3):
+        super(CycleGanDiscriminator, self).__init__()
+
+        self.input_channels = 3
+
+        model = [nn.Conv2d(self.input_channels, ndf,
+                      kernel_size=4, stride=2, padding=1),
+                 nn.LeakyReLU(0.2, True)]
+
+        out_ch = ndf
+
+        for n in range(1, n_layers):
+            in_ch = out_ch
+            out_ch = min(2**n, 8) * ndf
+            model += [
+                nn.Conv2d(in_ch, out_ch, kernel_size=4, stride=2,
+                          padding=1, bias=nn.InstanceNorm2d),
+                nn.BatchNorm2d(out_ch),
+                nn.LeakyReLU(0.2, True)
+            ]
+
+        in_ch = out_ch
+        out_ch = min(2**n_layers, 8) * ndf
+        model += [
+            nn.Conv2d(in_ch, out_ch, kernel_size=4, stride=1, padding=1,
+                      bias=nn.InstanceNorm2d),
+            nn.BatchNorm2d(out_ch),
+            nn.LeakyReLU(0.2, True)
+        ]
+
+        model += [nn.Conv2d(out_ch, 1, kernel_size=4, stride=1, padding=1)]
+
+        self.model = nn.Sequential(*model)
+        self.fc = nn.Linear(900,1)
+
+    def forward(self, input):
+        x = self.model(input)
+        x = x.view(x.size(0), -1)
+        return nn.functional.sigmoid(self.fc(x))
