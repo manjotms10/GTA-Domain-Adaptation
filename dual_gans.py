@@ -7,23 +7,21 @@ from torch.autograd import Variable
 from torchvision.utils import save_image
 
 from utils import EpochTracker, weights_init_normal
-from networks import CycleGanDiscriminator, CycleGanResnetGenerator
+from networks import DualGansDiscriminator, DualGansGenerator
 
 
-class CycleGAN:
+class DualGANs:
 
-    def __init__(self, device, file_prefix, learning_rate, beta1,
+    def __init__(self, device, file_prefix, learning_rate=0.0005, alpha=0.9,
                  train=False, semi_supervised=False):
-        print("Starting Cycle Gan with Train = {} and Semi Supervised = {}".format(train, semi_supervised))
         
-        if semi_supervised:
-            self.architecture = 'cycle_gan_semi_'
+        print("Starting Dual Gans with Train = {} and Semi Supervised = {}".format(train, semi_supervised))
+        
+        if semi_supervised is True:
+            self.architecture = 'dual_gans_semi_'
         else:
-            self.architecture = 'cycle_gan_un_'
+            self.architecture = 'dual_gans_un_'
             
-        self.lambda_A = 10.0  # weight for cycle-loss A->B->A
-        self.lambda_B = 10.0  # weight for cycle-loss B->A->B
-
         self.is_train = train
         self.is_semi_supervised = semi_supervised
         self.device = device
@@ -37,37 +35,36 @@ class CycleGAN:
         self.dis_b_file = file_prefix + self.architecture + 'discriminator_b.pth'
 
         if self.epoch_tracker.file_exists or not self.is_train:
-            self.GenA = self.init_net(CycleGanResnetGenerator(), self.gen_a_file)
-            self.GenB = self.init_net(CycleGanResnetGenerator(), self.gen_b_file)
+            self.GenA = self.init_net(DualGansGenerator(), self.gen_a_file)
+            self.GenB = self.init_net(DualGansGenerator(), self.gen_b_file)
         else:
-            self.GenA = self.init_net(CycleGanResnetGenerator())
-            self.GenB = self.init_net(CycleGanResnetGenerator())
+            self.GenA = self.init_net(DualGansGenerator())
+            self.GenB = self.init_net(DualGansGenerator())
 
         self.real_A = self.real_B = self.fake_A = self.fake_B = self.new_A = self.new_B = None
 
         if train:
             if self.epoch_tracker.file_exists:
-                self.DisA = self.init_net(CycleGanDiscriminator(), self.dis_a_file)
-                self.DisB = self.init_net(CycleGanDiscriminator(), self.dis_b_file)
+                self.DisA = self.init_net(DualGansDiscriminator(), self.dis_a_file)
+                self.DisB = self.init_net(DualGansDiscriminator(), self.dis_b_file)
             else:
-                self.DisA = self.init_net(CycleGanDiscriminator())
-                self.DisB = self.init_net(CycleGanDiscriminator())
+                self.DisA = self.init_net(DualGansDiscriminator())
+                self.DisB = self.init_net(DualGansDiscriminator())
 
             # define loss functions
             self.criterionGAN = nn.BCELoss()
-            self.criterionCycle = nn.L1Loss()
+            self.criterionWasserstein = nn.L1Loss()
             self.criterionSupervised = nn.L1Loss()
 
             # initialize optimizers
-            self.optimizer_g = torch.optim.Adam(itertools.chain(self.GenA.parameters(), self.GenB.parameters()),
-                                                lr=learning_rate, betas=(beta1, 0.999))
-            self.optimizer_d = torch.optim.Adam(itertools.chain(self.DisA.parameters(), self.DisB.parameters()),
-                                                lr=learning_rate, betas=(beta1, 0.999))
+            self.optimizer_g = torch.optim.RMSprop(itertools.chain(self.GenA.parameters(), self.GenB.parameters()),                                                                                learning_rate, alpha)
+            self.optimizer_d = torch.optim.RMSprop(itertools.chain(self.DisA.parameters(), self.DisB.parameters()),                                                                                learning_rate, alpha)
             self.optimizers = [self.optimizer_g, self.optimizer_d]
 
-            self.loss_disA = self.loss_disB = self.loss_cycle_A = 0
-            self.loss_cycle_B = self.loss_genA = self.loss_genB = 0
-            self.supervised_A = self.supervised_B = self.loss_G = 0
+            self.loss_disA = self.loss_disB = 0
+            self.loss_genA = self.loss_genB = 0
+            self.supervised_A = self.supervised_B = 0
+            self.loss_G = 0
         else:
             self.pixelLoss = nn.L1Loss()
             self.test_A = self.test_B = 0
@@ -104,16 +101,16 @@ class CycleGAN:
         self.loss_genB = self.criterionGAN(self.DisB(self.fake_A), valid)
 
         # Forward cycle loss
-        self.loss_cycle_A = self.criterionCycle(self.new_A, self.real_A) * self.lambda_A
+        self.loss_wasserstein_A = self.criterionWasserstein(self.new_A, self.real_A)
         # Backward cycle loss
-        self.loss_cycle_B = self.criterionCycle(self.new_B, self.real_B) * self.lambda_B
+        self.loss_wasserstein_B = self.criterionWasserstein(self.new_B, self.real_B)
 
         if self.is_semi_supervised:
-            self.supervised_A = self.criterionSupervised(self.fake_B[:2,:,:,:], self.real_B[:2,:,:,:]) * self.lambda_A
-            self.supervised_B = self.criterionSupervised(self.fake_A[:2,:,:,:], self.real_A[:2,:,:,:]) * self.lambda_B
+            self.supervised_A = self.criterionSupervised(self.fake_B[:2,:,:,:], self.real_B[:2,:,:,:])
+            self.supervised_B = self.criterionSupervised(self.fake_A[:2,:,:,:], self.real_A[:2,:,:,:])
 
         # combined loss
-        self.loss_G = (self.loss_genA + self.loss_genB + self.loss_cycle_A + self.loss_cycle_B)
+        self.loss_G = (self.loss_genA + self.loss_genB + self.loss_wasserstein_A + self.loss_wasserstein_B)
 
         if self.is_semi_supervised:
             self.loss_G += self.supervised_A + self.supervised_B
@@ -151,7 +148,7 @@ class CycleGAN:
 
     def save_progress(self, path, epoch, iteration, save_epoch=False):
         path +=  self.architecture 
-        
+            
         img_sample = torch.cat((self.real_A.data, self.fake_A.data, self.real_B.data, self.fake_B.data), -2)
         save_image(img_sample, path + "{}_{}.png".format(epoch, iteration), nrow=4, normalize=True)
 
@@ -164,7 +161,7 @@ class CycleGAN:
             if save_epoch:
                 file = "{}_{}".format(file, epoch)
             if torch.cuda.is_available():
-                torch.save(net.module.cpu().state_dict(), file)
+                torch.save(net.module.state_dict(), file)
                 net.to(self.device)
             else:
                 torch.save(net.cpu().state_dict(), file)
@@ -172,8 +169,8 @@ class CycleGAN:
         self.epoch_tracker.write(epoch, iteration)
 
     def save_image(self, path, name):
-        save_image(self.fake_A.data, path + "{}_fakeA.png".format(name), normalize=True)
-        save_image(self.fake_B.data, path + "{}_fakeB.png".format(name), normalize=True)
+        save_image(self.real_A.data, path + "{}_fakeA.png".format(name), normalize=True)
+        save_image(self.real_B.data, path + "{}_fakeB.png".format(name), normalize=True)
 
     @staticmethod
     def set_requires_grad(nets, requires_grad=False):

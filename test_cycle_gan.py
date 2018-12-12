@@ -8,20 +8,21 @@ from logger import logger
 from utils import ensure_dir, get_opts
 
 project_root = "./"
-data_root = "./gta/"
-models_prefix = project_root + "saved_models/"
-images_prefix = project_root + "saved_test_images/"
+data_root = "../Project/6_train/images/"
+models_prefix = project_root + "saved_models/test_"
+images_prefix = project_root + "saved_images/"
 
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
 
-def test_cycle_gan():
+def test_cycle_gan(semi_supervised=True):
     opt = get_opts()
 
     ensure_dir(models_prefix)
     ensure_dir(images_prefix)
 
-    cycle_gan = CycleGAN(device, models_prefix, opt["lr"], opt["b1"], train=False)
+    cycle_gan = CycleGAN(device, models_prefix, opt["lr"], opt["b1"], train=False, 
+                        semi_supervised=semi_supervised)
     data = DataLoader(data_root=data_root,
                       image_size=(opt['img_height'], opt['img_width']),
                       batch_size=1, train=False)
@@ -36,7 +37,7 @@ def test_cycle_gan():
 
     for i in range(total_images):
         print(i, "/", total_images)
-        y, x = next(data.data_generator(i))
+        x, y = next(data.data_generator(i))
         name = data.names[i]
 
         real_A = Variable(x.type(Tensor))
