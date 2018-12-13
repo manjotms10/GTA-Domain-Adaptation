@@ -14,18 +14,18 @@ pip install -r requirements.txt
 ```
 
 ### Dataset
-- Download the dataset by running 
+Download the dataset by running 
 ```
 bash ./get_dataset.sh
 ```
-Place the dataset in a foder named 'dataset' in the root directory.
+This will place the dataset in a foder named 'dataset' in the root directory.
 
 # Pretrained Models
-- Download pretrained models using
+Download pretrained models using
 ``` 
 bash ./get_pretrained_models.sh
 ```
-- This will create a folder named models and will download pre-trained models which will be used by the test and demo notebooks.
+This will create a folder named models and will download pre-trained models which will be used by the test and demo notebooks.
 
 # Description
 ```
