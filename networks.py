@@ -202,12 +202,8 @@ class Discriminator(nn.Module):
 
 # Defining Generator and Discriminator for CycleGANS
 
-# Idea originally from Justin Johnson's architecture.
-# https://github.com/jcjohnson/fast-neural-style/
 class CycleGanResnetGenerator(nn.Module):
-
     def __init__(self, ngf=32, use_dropout=True):
-
         super(CycleGanResnetGenerator, self).__init__()
 
         self.in_channels = 3
@@ -229,7 +225,7 @@ class CycleGanResnetGenerator(nn.Module):
                       nn.BatchNorm2d(out_ch),
                       nn.ReLU(True)]
 
-        # 9 Resnet Blocks
+        # Add Resnet Blocks
         in_ch = 4 * ngf
         for i in range(self.num_resnet_blocks):
             model += [CycleGanResnetBlock(in_ch, use_dropout)]
@@ -331,7 +327,6 @@ class DualGansGenerator(nn.Module):
         ngf = 64
         
         # Convolution layers
-        
         # input is (nc) x 256 x 256
         self.conv1 = nn.Conv2d(nc, ngf, 4, 2, 1, bias=True)
         self.lr1 = nn.LeakyReLU(inplace=True)
@@ -364,7 +359,7 @@ class DualGansGenerator(nn.Module):
         self.bn8 = nn.BatchNorm2d(ngf*8)
         self.r8 = nn.ReLU(inplace=True)
         
-        # Transpose Convolutional Layers
+        # Transposed Convolutional Layers
         
         # input is (ngf*8) x 1 x 1
         self.tr_conv1 = nn.ConvTranspose2d(ngf*8, ngf*8, 4, 2, 1, bias=True)
