@@ -8,7 +8,7 @@ from logger import logger
 from utils import ensure_dir, get_opts
 
 project_root = "./"
-data_root = "../Project/6_train/images/"
+data_root = "gta/images/"
 models_prefix = project_root + "saved_models/test_"
 images_prefix = project_root + "saved_images/"
 
