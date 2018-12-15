@@ -10,14 +10,14 @@ from logger import logger
 from utils import ensure_dir, get_opts
 
 project_root = "./"
-data_root = "./gta/"
+data_root = "./gta/images/"
 models_prefix = project_root + "saved_models/"
 images_prefix = project_root + "saved_images/"
 
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
 
-def train_cycle_gan(semi_supervised=False):
+def train_cycle_gan(data_root, semi_supervised=False):
     opt = get_opts()
 
     ensure_dir(models_prefix)
@@ -68,4 +68,4 @@ def train_cycle_gan(semi_supervised=False):
 
 
 if __name__ == "__main__":
-    train_cycle_gan()
+    train_cycle_gan(data_root)
