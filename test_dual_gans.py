@@ -15,7 +15,7 @@ images_prefix = project_root + "saved_images/"
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
 
-def test_dual_gans(semi_supervised=True):
+def test_dual_gans(data_root, semi_supervised=True):
     opt = get_opts()
 
     ensure_dir(models_prefix)
@@ -61,4 +61,4 @@ def test_dual_gans(semi_supervised=True):
 
 
 if __name__ == "__main__":
-    test_dual_gans()
+    test_dual_gans(data_root)
